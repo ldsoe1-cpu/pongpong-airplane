@@ -985,7 +985,8 @@ function gameLoop() {
                 // 적 파괴
                 if (enemy.hp <= 0) {
                     enemy.markedForDeletion = true;
-                    score += 100; // 코다리 부장 시원하게 폭렙 상승!
+                    score += 100;
+                    thisGameCoins += 100; // 적군 처치 시 코인 100개 확정 지급 (스테이지 업을 위해!)
 
                     if (enemy.modelType === 'special_plate') {
                         // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
@@ -1087,7 +1088,7 @@ function gameLoop() {
 
     // HUD 업데이트 (현재 스테이지도 함께 표시)
     scoreValue.innerText = `[LV.${currentStage}] Score: ` + score;
-    coinValue.innerText = thisGameCoins;
+    coinValue.innerText = localTotal; // 실시간 총합 코인을 표시하여 유저가 스테이지 업 시점을 알게 함
 
     // 다음 프레임 예약
     animationId = requestAnimationFrame(gameLoop);
