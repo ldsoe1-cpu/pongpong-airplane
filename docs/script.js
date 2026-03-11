@@ -7,7 +7,7 @@ async function initAds() {
         await AdMob.initialize({ requestTrackingAuthorization: true });
         // 하단 배너 광고 상시 노출 (테스트 ID)
         await AdMob.showBanner({
-            adId: 'ca-app-pub-3940256099942544/6300978111', 
+            adId: 'ca-app-pub-3940256099942544/6300978111',
             adSize: 'BANNER',
             position: 'BOTTOM_CENTER',
             margin: 0
@@ -34,8 +34,8 @@ async function showRewarded(successCallback) {
         await AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-3940256099942544/5224354917' });
         const reward = await AdMob.showRewardVideoAd();
         if (reward) successCallback();
-    } catch (e) { 
-        console.warn("Reward Ad Failed:", e); 
+    } catch (e) {
+        console.warn("Reward Ad Failed:", e);
         successCallback();
     }
 }
@@ -47,22 +47,22 @@ let audioCtx;
 function playLaserSound() {
     if (!audioCtx) audioCtx = new AudioContext(); // 첫 발사 시 생성
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    
+
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-    
+
     // 복고풍 뿅뿅 소리 (Square wave 파형 피치 드랍)
     osc.type = 'square';
-    osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
-    osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.1); 
-    
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.1);
+
     // 짧고 굵직하게 끊어지는 사운드
-    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime); 
+    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-    
+
     osc.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-    
+
     osc.start();
     osc.stop(audioCtx.currentTime + 0.1);
 }
@@ -70,23 +70,23 @@ function playLaserSound() {
 function playCoinSound() {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    
+
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
-    
+
     // 코인 특유의 띠-링! 느낌 (두 개의 음이 연달아 들리도록 피치 점프)
     osc.type = 'sine'; // 맑은 음색
     osc.frequency.setValueAtTime(987.77, audioCtx.currentTime); // 첫음 (B5)
     osc.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.05); // 짧게 E6로 도약
-    
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
-    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.05); 
+
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.05);
     // 서서히 여운을 남기며 사라짐
     gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
-    
+
     osc.connect(gainNode);
     gainNode.connect(audioCtx.destination);
-    
+
     osc.start();
     osc.stop(audioCtx.currentTime + 0.3);
 }
@@ -95,7 +95,7 @@ function playCoinSound() {
 function playGlassSound() {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    
+
     const now = audioCtx.currentTime;
 
     // 1. 강한 타격음 (Impact) - 깡! 하는 순간적인 충격
@@ -122,16 +122,16 @@ function playGlassSound() {
     }
     const noiseSource = audioCtx.createBufferSource();
     noiseSource.buffer = noiseBuffer;
-    
+
     const noiseFilter = audioCtx.createBiquadFilter();
     noiseFilter.type = 'highpass';
     noiseFilter.frequency.setValueAtTime(3000, now);
     noiseFilter.Q.value = 10; // 공명 추가로 맑은 느낌 강화
-    
+
     const noiseGain = audioCtx.createGain();
     noiseGain.gain.setValueAtTime(0.5, now);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    
+
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
     noiseGain.connect(audioCtx.destination);
@@ -143,13 +143,13 @@ function playGlassSound() {
         const tinkleGain = audioCtx.createGain();
         const delay = Math.random() * 0.1;
         const freq = 4000 + Math.random() * 6000;
-        
+
         tinkleOsc.type = 'sine';
         tinkleOsc.frequency.setValueAtTime(freq, now + delay);
         tinkleGain.gain.setValueAtTime(0, now + delay);
         tinkleGain.gain.linearRampToValueAtTime(0.1, now + delay + 0.01);
         tinkleGain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.2);
-        
+
         tinkleOsc.connect(tinkleGain);
         tinkleGain.connect(audioCtx.destination);
         tinkleOsc.start(now + delay);
@@ -175,18 +175,18 @@ function loadAndRemoveBackground(src, level) {
         offCanvas.height = img.height;
         const octx = offCanvas.getContext('2d');
         octx.drawImage(img, 0, 0);
-        
+
         try {
             const imgData = octx.getImageData(0, 0, offCanvas.width, offCanvas.height);
             const data = imgData.data;
             // 좌상단(0,0) 픽셀을 배경색 기준으로 삼음 (주로 흰색이나 검은색 영역)
             const bgR = data[0], bgG = data[1], bgB = data[2];
-            
+
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i], g = data[i+1], b = data[i+2];
+                const r = data[i], g = data[i + 1], b = data[i + 2];
                 // 배경색과 오차범위 40 이내로 유사하면 알파(투명도) 값을 0으로 만듦
                 if (Math.abs(r - bgR) < 50 && Math.abs(g - bgG) < 50 && Math.abs(b - bgB) < 50) {
-                    data[i+3] = 0;
+                    data[i + 3] = 0;
                 }
             }
             octx.putImageData(imgData, 0, 0);
@@ -219,17 +219,17 @@ imgRacingCarSheet.onload = () => {
         offCanvas.width = carW;
         offCanvas.height = carH;
         const octx = offCanvas.getContext('2d');
-        
+
         const r = Math.floor(i / cols);
         const c = i % cols;
         octx.drawImage(imgRacingCarSheet, c * carW, r * carH, carW, carH, 0, 0, carW, carH);
-        
+
         try {
             const imgData = octx.getImageData(0, 0, carW, carH);
             const data = imgData.data;
             for (let j = 0; j < data.length; j += 4) {
-                if (data[j] > 240 && data[j+1] > 240 && data[j+2] > 240) {
-                    data[j+3] = 0;
+                if (data[j] > 240 && data[j + 1] > 240 && data[j + 2] > 240) {
+                    data[j + 3] = 0;
                 }
             }
             octx.putImageData(imgData, 0, 0);
@@ -316,7 +316,7 @@ let coins = [];
 let currentStage = 1;
 let prevStage = 1;
 let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
-const coinsPerStage = 1000; // 1000 코인 모일 때마다 스테이지 업업!
+const coinsPerStage = 10000; // 10000 코인 모일 때마다 스테이지 업업! (대표님 요청상향)
 
 // 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
 const stageTargetPools = {
@@ -385,7 +385,7 @@ class Player {
 
     update() {
         if (this.powerupTimer > 0) {
-            this.powerupTimer -= 16.6; 
+            this.powerupTimer -= 16.6;
             if (this.powerupTimer <= 0) {
                 this.powerup = null;
             }
@@ -393,7 +393,7 @@ class Player {
         // 부드럽게 마우스(터치) 위치로 따라가기 (Lerp 효과)
         this.x += (mouse.x - this.x) * this.speed;
         this.y += (mouse.y - this.y) * this.speed;
-        
+
         // 화면 밖으로 나가지 못하게 제한
         if (this.x < this.width / 2) this.x = this.width / 2;
         if (this.x > CANVAS_WIDTH - this.width / 2) this.x = CANVAS_WIDTH - this.width / 2;
@@ -405,10 +405,10 @@ class Player {
 
     draw() {
         // [MOD] 오라 효과 제거 - 대표님 지시 (깔끔한 UI 유지)
-        
+
         ctx.save();
         ctx.translate(this.x, this.y);
-        
+
         // 스테이지에 따라 진화하는 기체 이미지 선택
         let currentImg = playerSprites[1];
         if (currentStage >= 6 && currentStage <= 10) currentImg = playerSprites[2];
@@ -429,19 +429,19 @@ class Player {
         ctx.fillStyle = '#ff9900';
         ctx.beginPath();
         // size가 60이므로 꼬리 쪽은 대략 y=30 근방
-        ctx.moveTo(-this.width/8, 30);
+        ctx.moveTo(-this.width / 8, 30);
         ctx.lineTo(0, 30 + 15 + Math.random() * 10);
-        ctx.lineTo(this.width/8, 30);
+        ctx.lineTo(this.width / 8, 30);
         ctx.closePath();
         ctx.fill();
-        
+
         ctx.restore();
     }
 
     fire() {
         const currentTime = Date.now();
         if (currentTime - this.lastShotTime > currentFireRate) {
-            
+
             if (this.powerup === 'red') {
                 // Quad-Shot: 전방 4발
                 const spread = 20;
@@ -510,10 +510,10 @@ class Bullet {
         ctx.shadowBlur = 8;
         ctx.shadowColor = this.color;
         ctx.fillRect(this.x - this.width / 2, this.y, this.width, this.height);
-        
+
         ctx.fillStyle = '#ffffff'; // 중심부 흰색으로 더 밝게 처리
         ctx.fillRect(this.x - 1, this.y, 2, this.height);
-        
+
         ctx.shadowBlur = 0; // 리셋
     }
 }
@@ -523,20 +523,20 @@ class Bullet {
 // ==========================================
 class Enemy {
     constructor() {
-        this.radius = Math.random() * 20 + 15; 
-        
+        this.radius = Math.random() * 20 + 15;
+
         // --- 60% 확률로 플레이어 타겟팅(유도/곡선) 스폰 로직 ---
         const isTargeting = Math.random() < 0.6 && player;
-        
+
         // 이동 패턴을 위한 파동(Wave) 변수
         this.angle = Math.random() * Math.PI * 2;
-        this.angleSpeed = Math.random() * 0.05 + 0.02; 
-        this.curveMagnitude = Math.random() * 1.5; 
-        
+        this.angleSpeed = Math.random() * 0.05 + 0.02;
+        this.curveMagnitude = Math.random() * 1.5;
+
         if (isTargeting) {
             // [MOD] 자동차 스테이지(LV.3)도 여러 방향에서 출현하도록 제약 해제
-            const spawnEdge = Math.floor(Math.random() * 3); 
-            if(spawnEdge === 0) {
+            const spawnEdge = Math.floor(Math.random() * 3);
+            if (spawnEdge === 0) {
                 this.x = -this.radius * 2;
                 this.y = Math.random() * (CANVAS_HEIGHT / 2);
             } else if (spawnEdge === 1) {
@@ -550,31 +550,31 @@ class Enemy {
             const dx = player.x - this.x;
             const dy = player.y - this.y;
             const dist = Math.hypot(dx, dy);
-            
+
             // [MOD] 자동차(LV.3)는 타 적군 대비 속도를 대폭 하향 (0.5~1.2)
             let baseSpeed = (Math.random() * 3 + 1.5) * enemySpeedMultiplier;
             if (currentStage === 3) baseSpeed = (Math.random() * 0.7 + 0.5) * enemySpeedMultiplier;
 
             this.targetSpeedX = (dx / dist) * baseSpeed;
             this.targetSpeedY = (dy / dist) * baseSpeed;
-            
+
             this.speedX = this.targetSpeedX;
             this.speedY = this.targetSpeedY;
-            
+
         } else {
             // 지그재그/하강 스폰
             this.x = Math.random() * (CANVAS_WIDTH - this.radius * 2) + this.radius;
             this.y = -this.radius;
-            
-            this.targetSpeedX = 0; 
+
+            this.targetSpeedX = 0;
             // [MOD] 자동차(LV.3)는 하강 속도도 매우 느리게 조정
             let baseSpeedY = (Math.random() * 2 + 1) * enemySpeedMultiplier;
             if (currentStage === 3) baseSpeedY = (Math.random() * 0.5 + 0.8) * enemySpeedMultiplier;
-            
+
             this.speedY = baseSpeedY;
-            this.curveMagnitude = Math.random() * 3 + 1; 
+            this.curveMagnitude = Math.random() * 3 + 1;
         }
-        
+
         this.hp = Math.floor(this.radius / 10); // 크기에 비례하는 체력
 
         if (currentStage === 3) {
@@ -583,7 +583,7 @@ class Enemy {
             this.radius = Math.random() * 6 + 15; // 더욱 축소 (15~21)
             this.hp = 3;     // 다수 출현하므로 체력을 적절히 하향
             this.carIndex = Math.floor(Math.random() * 6);
-            
+
             this.zigzagFreq = Math.random() * 0.12 + 0.08;
             this.zigzagAmp = Math.random() * 10 + 5;
         } else {
@@ -600,8 +600,8 @@ class Enemy {
                 this.color = `hsl(${hue}, 80%, 50%)`;
             } else {
                 // 접시, 외계인, 인형 등은 쌩 이모지로 취급. 단, 2단계면 `draw`단에서 `special_plate`로 판정됨
-                this.modelType = 'emoji'; 
-                if(currentStage === 2) this.modelType = 'special_plate';
+                this.modelType = 'emoji';
+                if (currentStage === 2) this.modelType = 'special_plate';
                 this.spinAngle = Math.random() * Math.PI * 2;
                 this.spinSpeed = (Math.random() - 0.5) * 0.1;
 
@@ -628,10 +628,10 @@ class Enemy {
         if (this.modelType === 'emoji') {
             this.spinAngle += this.spinSpeed;
         }
-        
+
         // 타겟팅 객체라면 원래 속도에 파동을 살짝 더하고, 일반 객체면 X축으로 크게 물결침
         let moveX = this.speedX + Math.sin(this.angle) * this.curveMagnitude;
-        
+
         // [MOD] 레이싱 카 전용 부드러운 곡선 패턴 (정신없는 지그재그 제거)
         if (this.modelType === 'racing_car') {
             moveX = this.speedX + Math.sin(this.angle * 0.5) * this.zigzagAmp * 0.5;
@@ -643,10 +643,10 @@ class Enemy {
         // 화면 테두리에 부딪히면 튕기게 처리 (유도 비행기가 벽 밖으로 나가는 것 방지)
         if (this.x - this.radius < 0) {
             this.x = this.radius;
-            if(this.speedX < 0) this.speedX *= -1;
+            if (this.speedX < 0) this.speedX *= -1;
         } else if (this.x + this.radius > CANVAS_WIDTH) {
             this.x = CANVAS_WIDTH - this.radius;
-            if(this.speedX > 0) this.speedX *= -1;
+            if (this.speedX > 0) this.speedX *= -1;
         }
 
         // 화면 아래로 벗어나면 삭제 마킹
@@ -658,7 +658,7 @@ class Enemy {
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
-        
+
         if (this.modelType === 'racing_car' && racingCarSprites.imgs[this.carIndex]) {
             // 레이싱 카 렌더링 (다양한 6종 모델)
             const img = racingCarSprites.imgs[this.carIndex];
@@ -667,7 +667,7 @@ class Enemy {
 
             const renderWidth = this.radius * 3.5;
             const renderHeight = renderWidth * (img.height / img.width);
-            
+
             ctx.drawImage(
                 img,
                 -renderWidth / 2, -renderHeight / 2, renderWidth, renderHeight
@@ -676,28 +676,28 @@ class Enemy {
         else if (this.modelType === 'special_plate') {
             // 2단계 스페셜 (하얀색 납작 접시)
             this.modelType = 'special_plate';
-            ctx.rotate(this.spinAngle); 
-            ctx.fillStyle = '#ffffff'; 
+            ctx.rotate(this.spinAngle);
+            ctx.fillStyle = '#ffffff';
             ctx.shadowColor = '#aaaaaa';
             ctx.shadowBlur = 5;
-            
+
             ctx.beginPath();
-            ctx.ellipse(0, 0, this.radius * 1.5, this.radius * 1.5, 0, 0, Math.PI*2);
+            ctx.ellipse(0, 0, this.radius * 1.5, this.radius * 1.5, 0, 0, Math.PI * 2);
             ctx.fill();
-            
+
             ctx.strokeStyle = '#e0e0e0';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.ellipse(0, 0, this.radius * 1.1, this.radius * 1.1, 0, 0, Math.PI*2);
+            ctx.ellipse(0, 0, this.radius * 1.1, this.radius * 1.1, 0, 0, Math.PI * 2);
             ctx.stroke();
-        } 
+        }
         else if (this.modelType === 'plane') {
             // 방향에 맞춰 기수(머리)를 회전(rotate)
             const currentThrustX = this.speedX + Math.sin(this.angle) * this.curveMagnitude;
             const currentThrustY = this.speedY;
             const rotateAngle = Math.atan2(currentThrustY, currentThrustX) - Math.PI / 2;
             ctx.rotate(rotateAngle);
-            
+
             // 적군 비행기 (빨간색 조차도 디테일하게!)
             let w = this.radius * 2.5;
             let h = this.radius * 2.5;
@@ -705,46 +705,46 @@ class Enemy {
             // 동체
             ctx.fillStyle = this.color;
             ctx.beginPath();
-            ctx.moveTo(0, h/2); // 코 부분 (아래쪽)
-            ctx.lineTo(w/8, h/4);
-            ctx.lineTo(w/8, -h/2);
-            ctx.lineTo(-w/8, -h/2);
-            ctx.lineTo(-w/8, h/4);
+            ctx.moveTo(0, h / 2); // 코 부분 (아래쪽)
+            ctx.lineTo(w / 8, h / 4);
+            ctx.lineTo(w / 8, -h / 2);
+            ctx.lineTo(-w / 8, -h / 2);
+            ctx.lineTo(-w / 8, h / 4);
             ctx.closePath();
             ctx.fill();
 
             // 주 날개
             ctx.beginPath();
-            ctx.moveTo(w/8, h/8);
-            ctx.lineTo(w/2, -h/6);
-            ctx.lineTo(w/8, -h/4);
+            ctx.moveTo(w / 8, h / 8);
+            ctx.lineTo(w / 2, -h / 6);
+            ctx.lineTo(w / 8, -h / 4);
             ctx.closePath();
             ctx.fill();
             ctx.beginPath();
-            ctx.moveTo(-w/8, h/8);
-            ctx.lineTo(-w/2, -h/6);
-            ctx.lineTo(-w/8, -h/4);
+            ctx.moveTo(-w / 8, h / 8);
+            ctx.lineTo(-w / 2, -h / 6);
+            ctx.lineTo(-w / 8, -h / 4);
             ctx.closePath();
             ctx.fill();
 
             // 꼬리 날개
             ctx.beginPath();
-            ctx.moveTo(w/8, -h/3);
-            ctx.lineTo(w/3, -h/2);
-            ctx.lineTo(w/8, -h/2);
+            ctx.moveTo(w / 8, -h / 3);
+            ctx.lineTo(w / 3, -h / 2);
+            ctx.lineTo(w / 8, -h / 2);
             ctx.closePath();
             ctx.fill();
             ctx.beginPath();
-            ctx.moveTo(-w/8, -h/3);
-            ctx.lineTo(-w/3, -h/2);
-            ctx.lineTo(-w/8, -h/2);
+            ctx.moveTo(-w / 8, -h / 3);
+            ctx.lineTo(-w / 3, -h / 2);
+            ctx.lineTo(-w / 8, -h / 2);
             ctx.closePath();
             ctx.fill();
-            
+
             // 적 콕핏(조종석) 장식 (검은색)
             ctx.fillStyle = '#222';
             ctx.beginPath();
-            ctx.ellipse(0, h/6, w/10, h/8, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, h / 6, w / 10, h / 8, 0, 0, Math.PI * 2);
             ctx.fill();
         } else {
             // 이모지 타겟 렌더링 (자체적으로 빙글빙글 돌면서 떨어지도록 연출)
@@ -852,7 +852,7 @@ class Coin {
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
-        
+
         // 코인 색상 분기
         if (this.type === 'red') ctx.fillStyle = '#ff3333';
         else if (this.type === 'blue') ctx.fillStyle = '#3333ff';
@@ -920,9 +920,9 @@ function gameLoop() {
     if (canSpawn) {
         enemies.push(new Enemy());
         lastSpawntime = currentTime;
-        
+
         // 난이도 상승 로직
-        if (spawnInterval > 250) spawnInterval -= 5; 
+        if (spawnInterval > 250) spawnInterval -= 5;
         enemySpeedMultiplier += 0.002;
     }
 
@@ -939,12 +939,12 @@ function gameLoop() {
     enemies.forEach((enemy, index) => {
         enemy.update();
         enemy.draw();
-        
+
         // 1. 플레이어와 적군 충돌 검사 (원형 vs 사각형 AABB 근사치)
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const distance = Math.hypot(dx, dy);
-        
+
         // 부딪혔을 때 (플레이어 피격 반경은 약간 작게 잡아 유저에게 유리하게 판정)
         if (distance < enemy.radius + player.width / 3) {
             // 플레이어 폭발 연출
@@ -953,11 +953,11 @@ function gameLoop() {
                 particles.push(new Particle(player.x, player.y, '#ffffff'));
             }
             shakeTime = 20; // 20프레임 동안 화면 진동
-            
+
             setTimeout(() => {
                 gameOver();
             }, 500); // 0.5초 뒤 게임오버 화면 띄워서 타격감 극대화
-            
+
             isPlaying = false; // 루프 정지 (이벤트 무시 등)
         }
 
@@ -986,13 +986,13 @@ function gameLoop() {
                 if (enemy.hp <= 0) {
                     enemy.markedForDeletion = true;
                     score += 100; // 코다리 부장 시원하게 폭렙 상승!
-                    
+
                     if (enemy.modelType === 'special_plate') {
                         // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
-                        playGlassSound(); 
+                        playGlassSound();
                         playGlassSound();
                     }
-                    
+
                     // [MOD] 모든 스테이지에서 파워업 코인 드랍 (확률 및 종류 개선)
                     if (Math.random() < 0.35) {
                         const rand = Math.random();
@@ -1030,13 +1030,13 @@ function gameLoop() {
     // 개발자 패널 조작으로 currentStage가 강제로 바뀐 경우에는 코인량에 의한 자동 레벨업 기능을 무시하여 자유로운 테스트를 보장합니다.
     if (!window.isDeveloperStageOverridden) {
         currentStage = Math.floor(localTotal / coinsPerStage) + 1; // 1단계 보장, 1000 코인 단위로 스테이지 상승
-        if(currentStage > 20) currentStage = 20; // 최대 20레벨 캡 적용
+        if (currentStage > 20) currentStage = 20; // 최대 20레벨 캡 적용
     }
 
     // 스테이지가 바뀌었을 때 화면 싹쓸이(클리어) 연출 및 배경색 전환 처리
     if (currentStage !== prevStage) {
         stageMessageTimer = 180; // (60fps 기준 약 3초 동안 알림 텍스트 표시)
-        
+
         // 하늘에 떠 있던 기존 적군의 타입을 바꾸거나 클리어 시각 효과 연출
         enemies.forEach(enemy => {
             for (let i = 0; i < 15; i++) {
@@ -1045,35 +1045,35 @@ function gameLoop() {
         });
         enemies = []; // 적군 싹 치우기 (새로운 타겟들이 떨어지도록 비워줌)
         bullets = []; // 현재 쏜 총알들도 화면에 남아 에러가 나지 않게 일괄 리셋
-        
+
         // 배경색을 스테이지에 맞춰서 변경 (우주 느낌의 그라데이션)
-        const hue1 = (currentStage * 18) % 360; 
+        const hue1 = (currentStage * 18) % 360;
         const hue2 = (currentStage * 18 + 40) % 360;
         canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
-        
+
         prevStage = currentStage;
     }
-    
+
     // 타겟 풀 이모지/스테이지 번호 등 라운드 변경 알림을 화면 중앙에 커다랗게 렌더링
     if (stageMessageTimer > 0) {
         ctx.save();
         ctx.fillStyle = `rgba(255, 255, 255, ${stageMessageTimer / 180})`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        
+
         // "STAGE X" 글자
         ctx.font = 'bold 50px Arial';
         ctx.fillText(`뽕뽕비행기: STAGE ${currentStage}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
-        
+
         // 렌더링될 타겟 미리보기 글자
         const pool = stageTargetPools[currentStage] || stageTargetPools[20];
         ctx.font = 'bold 35px Arial';
         ctx.fillText(`Targets: ${pool.join(' ')}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
-        
+
         ctx.restore();
         stageMessageTimer--;
     }
-    
+
     // 코인 렌더링 호출
     coins.forEach((coin, index) => {
         coin.update();
@@ -1107,7 +1107,11 @@ function startGame() {
     score = 0;
     thisGameCoins = 0;
     isPlaying = true;
-    
+
+    // 개발자 스테이지 강제 고정 플래그 초기화 (자동 레벨업 복구)
+    window.isDeveloperStageOverridden = false;
+
+
     // 오브젝트 배열 및 상태 리셋
     bullets = [];
     enemies = [];
@@ -1116,7 +1120,7 @@ function startGame() {
     lastSpawntime = Date.now();
     spawnInterval = 750;
     enemySpeedMultiplier = 1;
-    
+
     // UI 로직 처리
     startScreen.classList.remove('active');
     startScreen.classList.add('hidden');
@@ -1124,7 +1128,7 @@ function startGame() {
     gameOverScreen.classList.add('hidden');
     shopScreen.classList.remove('active');
     shopScreen.classList.add('hidden');
-    
+
     // 광고 상태 초기화 (게임이 새로 시작되면 리셋)
     isDoubleCoinUsed = false;
     adReviveBtn.style.display = 'block'; // 부활 버튼 보이기
@@ -1144,14 +1148,14 @@ function updateShopUI() {
     costMultiShotElement.innerText = costMultiShot;
 
     // 코인이 부족하거나, 최대 업그레이드 수치 도달 시 버튼 비활성화 처리
-    upgFireRateBtn.disabled = totalCoins < costFireRate || currentFireRate <= 50; 
+    upgFireRateBtn.disabled = totalCoins < costFireRate || currentFireRate <= 50;
     upgMultiShotBtn.disabled = totalCoins < costMultiShot || currentMultiShot >= 5;
 }
 
 function gameOver() {
     isPlaying = false;
     cancelAnimationFrame(animationId);
-    
+
     // [MOD] 게임 오버 시 전면 광고(Interstitial) 시도
     showInterstitial();
 
@@ -1159,13 +1163,13 @@ function gameOver() {
     if (!isRevived) {
         totalCoins += thisGameCoins; // 획득 코인 계정 누적 (부활 전 1회만 누적 처리 방지)
     }
-    
+
     finalScoreValue.innerText = score;
     acquiredCoinValue.innerText = thisGameCoins;
-    
+
     gameOverScreen.classList.remove('hidden');
     gameOverScreen.classList.add('active');
-    
+
     // 이번 게임에 한 번이라도 부활했다면 더 이상 부활 불가
     if (isRevived) {
         adReviveBtn.style.display = 'none';
@@ -1179,7 +1183,7 @@ function gameOver() {
 // 마우스 및 터치 이벤트 처리
 function handlePointerMove(evt) {
     if (!isPlaying) return;
-    
+
     // 터치 이벤트는 touches 배열을 참초, 마우스는 그대로 사용
     const targetX = evt.touches ? evt.touches[0].clientX : evt.clientX;
     const targetY = evt.touches ? evt.touches[0].clientY : evt.clientY;
@@ -1190,7 +1194,7 @@ function handlePointerMove(evt) {
 
 // 캔버스 자체에서 스크롤 방지를 한 번 더 보강
 canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault(); 
+    e.preventDefault();
     handlePointerMove(e);
 }, { passive: false });
 canvas.addEventListener('mousemove', handlePointerMove);
@@ -1204,7 +1208,7 @@ canvas.addEventListener('contextmenu', (e) => {
 function bindTouchAndClick(element, handler) {
     element.addEventListener('click', (e) => {
         // UI 클릭이 캔버스 조종으로 새어나가지 않게 보호
-        e.stopPropagation(); 
+        e.stopPropagation();
         handler(e);
     });
     element.addEventListener('touchstart', (e) => {
@@ -1256,7 +1260,7 @@ bindTouchAndClick(adDoubleCoinBtn, () => {
             totalCoins += thisGameCoins; // 추가로 한 번 더 누적
             thisGameCoins *= 2; // 화면 표기용
             acquiredCoinValue.innerText = thisGameCoins;
-            
+
             isDoubleCoinUsed = true;
             adDoubleCoinBtn.style.display = 'none'; // 한 판에 한 번만
         });
@@ -1268,20 +1272,20 @@ bindTouchAndClick(adDoubleCoinBtn, () => {
 bindTouchAndClick(adReviveBtn, () => {
     showRewarded(() => {
         isRevived = true;
-        
+
         // 무적 시간이나 화면 정리 후 이어하기 처리
         player.x = CANVAS_WIDTH / 2;
         player.y = CANVAS_HEIGHT - 100;
         mouse.x = player.x;
         mouse.y = player.y;
-        
+
         // 화면상의 적 지우기 (원활한 부활을 위해)
         enemies = [];
         bullets = [];
-        
+
         gameOverScreen.classList.remove('active');
         gameOverScreen.classList.add('hidden');
-        
+
         isPlaying = true;
         lastSpawntime = Date.now(); // 스폰 타이머만 리셋
         gameLoop();
@@ -1324,13 +1328,13 @@ bindTouchAndClick(btnStageDown, () => {
 bindTouchAndClick(btnCoinCheat, () => {
     totalCoins += 10000;
     // 게임안에 있는 경우와 화면 밖인 경우 모두 대응
-    updateShopUI(); 
+    updateShopUI();
     alert("💸 코다리 부장의 비자금 10,000 코인 충전 완료! 💸");
 });
 
 bindTouchAndClick(restartBtn, () => {
     isRevived = false;
-    
+
     // 로비로 전송 (Restart 대신 로비로 가는 구조로 스킨화)
     gameOverScreen.classList.remove('active');
     gameOverScreen.classList.add('hidden');
