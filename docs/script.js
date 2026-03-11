@@ -1,0 +1,1336 @@
+// --- Capacitor & AdMob (출시용 광고) 설정 ---
+const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
+
+async function initAds() {
+    if (!window.Capacitor) return;
+    try {
+        await AdMob.initialize({ requestTrackingAuthorization: true });
+        // 하단 배너 광고 상시 노출 (테스트 ID)
+        await AdMob.showBanner({
+            adId: 'ca-app-pub-3940256099942544/6300978111', 
+            adSize: 'BANNER',
+            position: 'BOTTOM_CENTER',
+            margin: 0
+        });
+    } catch (e) { console.warn("AdMob Init Failed:", e); }
+}
+
+async function showInterstitial() {
+    if (!window.Capacitor) return;
+    try {
+        await AdMob.prepareInterstitial({ adId: 'ca-app-pub-3940256099942544/1033173712' });
+        await AdMob.showInterstitial();
+    } catch (e) { console.warn("Interstitial Failed:", e); }
+}
+
+async function showRewarded(successCallback) {
+    if (!window.Capacitor) {
+        // 브라우저 환경에서는 기존처럼 모의 광고 재생
+        alert("🎥 [광고 모의 재생중...] 15초 광고를 시청했습니다!");
+        successCallback();
+        return;
+    }
+    try {
+        await AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-3940256099942544/5224354917' });
+        const reward = await AdMob.showRewardVideoAd();
+        if (reward) successCallback();
+    } catch (e) { 
+        console.warn("Reward Ad Failed:", e); 
+        successCallback();
+    }
+}
+
+// --- Web Audio API (효과음) 초기화 ---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function playLaserSound() {
+    if (!audioCtx) audioCtx = new AudioContext(); // 첫 발사 시 생성
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    // 복고풍 뿅뿅 소리 (Square wave 파형 피치 드랍)
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+    osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.1); 
+    
+    // 짧고 굵직하게 끊어지는 사운드
+    gainNode.gain.setValueAtTime(0.05, audioCtx.currentTime); 
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1);
+}
+
+function playCoinSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    // 코인 특유의 띠-링! 느낌 (두 개의 음이 연달아 들리도록 피치 점프)
+    osc.type = 'sine'; // 맑은 음색
+    osc.frequency.setValueAtTime(987.77, audioCtx.currentTime); // 첫음 (B5)
+    osc.frequency.setValueAtTime(1318.51, audioCtx.currentTime + 0.05); // 짧게 E6로 도약
+    
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); 
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime + 0.05); 
+    // 서서히 여운을 남기며 사라짐
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+}
+
+// 실제 유리 파손음을 Web Audio API로 극도로 정교하게 합성 (Impact + Crackling + Tinkling)
+function playGlassSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    
+    const now = audioCtx.currentTime;
+
+    // 1. 강한 타격음 (Impact) - 깡! 하는 순간적인 충격
+    const impactOsc = audioCtx.createOscillator();
+    const impactGain = audioCtx.createGain();
+    impactOsc.type = 'triangle';
+    impactOsc.frequency.setValueAtTime(150, now);
+    impactOsc.frequency.exponentialRampToValueAtTime(1000, now + 0.05);
+    impactGain.gain.setValueAtTime(0.4, now);
+    impactGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+    impactOsc.connect(impactGain);
+    impactGain.connect(audioCtx.destination);
+    impactOsc.start(now);
+    impactOsc.stop(now + 0.1);
+
+    // 2. 균열음 및 파편 비산 (Crackling/Shatter Noise) - 챙그랑!
+    const duration = 0.5;
+    const bufferSize = audioCtx.sampleRate * duration;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        // 시간에 따라 감쇄하는 화이트 노이즈
+        output[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+    }
+    const noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+    
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.setValueAtTime(3000, now);
+    noiseFilter.Q.value = 10; // 공명 추가로 맑은 느낌 강화
+    
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.5, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+    
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(audioCtx.destination);
+    noiseSource.start(now);
+
+    // 3. 고주파 잔향음 (Tinkling) - 찰랑찰랑 흩어지는 파편
+    for (let i = 0; i < 5; i++) {
+        const tinkleOsc = audioCtx.createOscillator();
+        const tinkleGain = audioCtx.createGain();
+        const delay = Math.random() * 0.1;
+        const freq = 4000 + Math.random() * 6000;
+        
+        tinkleOsc.type = 'sine';
+        tinkleOsc.frequency.setValueAtTime(freq, now + delay);
+        tinkleGain.gain.setValueAtTime(0, now + delay);
+        tinkleGain.gain.linearRampToValueAtTime(0.1, now + delay + 0.01);
+        tinkleGain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.2);
+        
+        tinkleOsc.connect(tinkleGain);
+        tinkleGain.connect(audioCtx.destination);
+        tinkleOsc.start(now + delay);
+        tinkleOsc.stop(now + delay + 0.2);
+    }
+}
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// 플레이어 외형 진화 스프라이트 에셋 (단계별 투명화 캔버스 저장용)
+const playerSprites = {
+    1: null, 2: null, 3: null, 4: null
+};
+
+// AI가 생성한 이미지의 하얀색/검은색 박스(배경색)를 자동으로 투명하게 뚫어주는 함수
+function loadAndRemoveBackground(src, level) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = img.width;
+        offCanvas.height = img.height;
+        const octx = offCanvas.getContext('2d');
+        octx.drawImage(img, 0, 0);
+        
+        try {
+            const imgData = octx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+            const data = imgData.data;
+            // 좌상단(0,0) 픽셀을 배경색 기준으로 삼음 (주로 흰색이나 검은색 영역)
+            const bgR = data[0], bgG = data[1], bgB = data[2];
+            
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i], g = data[i+1], b = data[i+2];
+                // 배경색과 오차범위 40 이내로 유사하면 알파(투명도) 값을 0으로 만듦
+                if (Math.abs(r - bgR) < 50 && Math.abs(g - bgG) < 50 && Math.abs(b - bgB) < 50) {
+                    data[i+3] = 0;
+                }
+            }
+            octx.putImageData(imgData, 0, 0);
+            playerSprites[level] = offCanvas; // 투명화가 완료된 캔버스를 에셋으로 사용
+        } catch (e) {
+            console.error("Canvas CORS data error:", e);
+            playerSprites[level] = img; // 로컬 보안 에러 시 원본 이미지 대체
+        }
+    };
+}
+
+loadAndRemoveBackground('player_lv1.png', 1);
+loadAndRemoveBackground('player_lv2.png', 2);
+loadAndRemoveBackground('player_lv3.png', 3);
+loadAndRemoveBackground('player_lv4.png', 4);
+
+// 적군 레이싱 카 에셋 로드 (Stage 3 정예 타겟 - 3x2 스프라이트 시트)
+const imgRacingCarSheet = new Image();
+imgRacingCarSheet.src = 'racing_car_spritesheet.png';
+const racingCarSprites = { imgs: [] }; // 6종의 레이싱 카 저장용
+
+imgRacingCarSheet.onload = () => {
+    const cols = 3;
+    const rows = 2;
+    const carW = imgRacingCarSheet.width / cols;
+    const carH = imgRacingCarSheet.height / rows;
+
+    for (let i = 0; i < 6; i++) {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = carW;
+        offCanvas.height = carH;
+        const octx = offCanvas.getContext('2d');
+        
+        const r = Math.floor(i / cols);
+        const c = i % cols;
+        octx.drawImage(imgRacingCarSheet, c * carW, r * carH, carW, carH, 0, 0, carW, carH);
+        
+        try {
+            const imgData = octx.getImageData(0, 0, carW, carH);
+            const data = imgData.data;
+            for (let j = 0; j < data.length; j += 4) {
+                if (data[j] > 240 && data[j+1] > 240 && data[j+2] > 240) {
+                    data[j+3] = 0;
+                }
+            }
+            octx.putImageData(imgData, 0, 0);
+            racingCarSprites.imgs.push(offCanvas);
+        } catch (e) {
+            racingCarSprites.imgs.push(offCanvas);
+        }
+    }
+};
+
+// UI 엘리먼트 가져오기
+const uiLayer = document.getElementById('uiLayer');
+const scoreValue = document.getElementById('scoreValue');
+const coinValue = document.getElementById('coinValue');
+const finalScoreValue = document.getElementById('finalScoreValue');
+const acquiredCoinValue = document.getElementById('acquiredCoinValue');
+
+const startScreen = document.getElementById('startScreen');
+const gameOverScreen = document.getElementById('gameOverScreen');
+const shopScreen = document.getElementById('shopScreen');
+
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restartBtn');
+const shopBtn = document.getElementById('shopBtn');
+const closeShopBtn = document.getElementById('closeShopBtn');
+
+const shopCoinValue = document.getElementById('shopCoinValue');
+const costFireRateElement = document.getElementById('costFireRate');
+const costMultiShotElement = document.getElementById('costMultiShot');
+const upgFireRateBtn = document.getElementById('upgFireRateBtn');
+const upgMultiShotBtn = document.getElementById('upgMultiShotBtn');
+
+const adReviveBtn = document.getElementById('adReviveBtn');
+const adDoubleCoinBtn = document.getElementById('adDoubleCoinBtn');
+
+// 개발자 전용 패널 엘리먼트
+const debugStageInfo = document.getElementById('debugStageInfo');
+const btnStageUp = document.getElementById('btnStageUp');
+const btnStageDown = document.getElementById('btnStageDown');
+const btnCoinCheat = document.getElementById('btnCoinCheat');
+
+// 캔버스 크기 - 화면에 꽉 차게 설정
+let CANVAS_WIDTH = window.innerWidth;
+let CANVAS_HEIGHT = window.innerHeight;
+
+function resizeCanvas() {
+    CANVAS_WIDTH = window.innerWidth;
+    CANVAS_HEIGHT = window.innerHeight;
+    canvas.width = CANVAS_WIDTH;
+    canvas.height = CANVAS_HEIGHT;
+}
+
+// 초기 로드 시 캔버스 크기 맞추기 및 리사이즈 이벤트 등록
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+
+
+// ==========================================
+// 게임 상태 변수들
+// ==========================================
+let isPlaying = false;
+let animationId;
+let score = 0;
+let thisGameCoins = 0; // 이번 판에서 얻은 코인
+let totalCoins = 0;    // 내 계정에 누적된 코인 (DB 모사)
+
+let player; // 전역 플레이어 객체
+
+// 게임 오브젝트 배열 관리
+let bullets = [];
+let enemies = [];
+let particles = [];
+let coins = [];
+
+// ==========================================
+// 스테이지 (20단계 레벨업) 테마 풀 (Target Objects)
+// ==========================================
+let currentStage = 1;
+let prevStage = 1;
+let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
+const coinsPerStage = 1000; // 1000 코인 모일 때마다 스테이지 업업!
+
+// 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
+const stageTargetPools = {
+    1: ['🛩️', '🚁'],       // 1단계: 비행기
+    2: ['🍽️', '🥣'],       // 2단계: 접시 (쨍그랑!)
+    3: ['🚗', '🚕', '🚓'], // 3단계: 자동차 (스프라이트 시트 사용)
+    4: ['🪐', '☄️'],       // 4단계: 우주 행성 (토성 등)
+    5: ['🛸', '🚀'],       // 5단계: 미확인 비행물체
+    6: ['🪐', '🌑', '🌕', '🌍', '☄️', '🌌', '🛸'], // 6단계: 행성 (목성, 천왕성, 해왕성 테마)
+    7: ['🥢', '🍴', '🥄'], // 7단계: 식기류
+    8: ['🌎', '🌍', '🌏'], // 8단계: 지구본
+    9: ['🍎', '🍐', '🥭', '🍑', '🍋', '🍈'], // 9단계: 과일 (사과, 배, 망고, 복숭아, 레몬 등)
+    10: ['⚽', '🏀', '🏈', '⚾'], // 10단계: 스포츠 공
+    11: ['💎', '💰', '👑', '💵'], // 11단계: 보석/골드
+    12: ['🧸', '🪆', '🎎', '🦄'], // 12단계: 인형 (곰돌이, 유니콘 등 예쁜 인형)
+    13: ['☀️', '⭐', '🌟', '✨'], // 13단계: 별
+    14: ['🍕', '🍔', '🍟', '🍦'], // 14단계: 패스트푸드
+    15: ['🎈', '🎐', '🎇', '🎆'], // 15단계: 풍선 (다양한 장식용 풍선/폭죽 느낌)
+    16: ['🧸', '🪆', '🎎', '🦄', '🐰', '🐱'], // 16단계: 인형 (더 다양하고 귀여운 시리즈)
+    17: ['🍌', '🍍', '🥭'], // 17단계: 트로피칼 과일
+    18: ['🎸', '🎹', '🎷'], // 18단계: 악기
+    19: ['🦑', '🐙', '🦞'], // 19단계: 해산물
+    20: ['🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨'], // 20단계 (최종): 건물/집 (빌라, 오두막 등 다양하게)
+};
+
+// 적 스폰 관련
+let lastSpawntime = 0;
+let spawnInterval = 750; // 초기 0.75초마다 생성 (기존 대비 2배 빠름!)
+let enemySpeedMultiplier = 1; // 시간이 지날수록 빨라지는 배율
+
+// 업그레이드 스탯 변수 (파워업 시스템 적용)
+let currentFireRate = 180; // 기본 발사 쿨타임 (ms)
+let currentMultiShot = 2; // 기본 총알 발사 수 (2는 양쪽 날개에서 하나씩)
+let costFireRate = 50;
+let costMultiShot = 200;
+
+// 모의 광고 시청 여부 리미터
+let isRevived = false;
+let isDoubleCoinUsed = false;
+
+// ==========================================
+// 사용자 입력 (마우스 / 터치) 처리 객체
+// ==========================================
+const mouse = {
+    x: CANVAS_WIDTH / 2,
+    y: CANVAS_HEIGHT - 100,
+    isDown: false
+};
+
+// ==========================================
+// Player (내 기체) 클래스 구현
+// ==========================================
+class Player {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 40;
+        this.height = 40;
+        this.color = '#00ffcc'; // 우주 테마에 어울리는 네온 컬러
+        this.speed = 0.2; // 이동 속도 계수 상향 (0.1 -> 0.2)
+        this.lastShotTime = 0;
+        this.fireRate = 180; // 기본 발사 쿨타임 (ms)
+        this.powerup = null; // 'red', 'blue', 'fire'
+        this.powerupTimer = 0;
+    }
+
+    update() {
+        if (this.powerupTimer > 0) {
+            this.powerupTimer -= 16.6; 
+            if (this.powerupTimer <= 0) {
+                this.powerup = null;
+            }
+        }
+        // 부드럽게 마우스(터치) 위치로 따라가기 (Lerp 효과)
+        this.x += (mouse.x - this.x) * this.speed;
+        this.y += (mouse.y - this.y) * this.speed;
+        
+        // 화면 밖으로 나가지 못하게 제한
+        if (this.x < this.width / 2) this.x = this.width / 2;
+        if (this.x > CANVAS_WIDTH - this.width / 2) this.x = CANVAS_WIDTH - this.width / 2;
+        if (this.y < this.height / 2) this.y = this.height / 2;
+        if (this.y > CANVAS_HEIGHT - this.height / 2) this.y = CANVAS_HEIGHT - this.height / 2;
+
+        this.fire(); // 매 프레임마다 발사 시도
+    }
+
+    draw() {
+        // [MOD] 오라 효과 제거 - 대표님 지시 (깔끔한 UI 유지)
+        
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        // 스테이지에 따라 진화하는 기체 이미지 선택
+        let currentImg = playerSprites[1];
+        if (currentStage >= 6 && currentStage <= 10) currentImg = playerSprites[2];
+        else if (currentStage >= 11 && currentStage <= 15) currentImg = playerSprites[3];
+        else if (currentStage >= 16) currentImg = playerSprites[4];
+
+        // 투명화된 캔버스가 로드되었으면 렌더링 (사이즈를 60 정도로 듬직하게 조정)
+        if (currentImg) {
+            const size = 60;
+            ctx.drawImage(currentImg, -size / 2, -size / 2, size, size);
+        } else {
+            // 아직 로드 안 됐을 땐 임시 사각형으로 땜빵
+            ctx.fillStyle = this.color;
+            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+        }
+
+        // 추진력을 보여주는 불꽃 엔진은 이미지 아래쪽에 이펙트로 계속 붙여줌
+        ctx.fillStyle = '#ff9900';
+        ctx.beginPath();
+        // size가 60이므로 꼬리 쪽은 대략 y=30 근방
+        ctx.moveTo(-this.width/8, 30);
+        ctx.lineTo(0, 30 + 15 + Math.random() * 10);
+        ctx.lineTo(this.width/8, 30);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.restore();
+    }
+
+    fire() {
+        const currentTime = Date.now();
+        if (currentTime - this.lastShotTime > currentFireRate) {
+            
+            if (this.powerup === 'red') {
+                // Quad-Shot: 전방 4발
+                const spread = 20;
+                for (let i = 0; i < 4; i++) {
+                    bullets.push(new Bullet(this.x - 30 + (i * spread), this.y - this.height / 2));
+                }
+            } else if (this.powerup === 'blue') {
+                // Radial-Shot: 방사형 5발
+                const angles = [-30, -15, 0, 15, 30];
+                angles.forEach(angle => {
+                    const rad = angle * Math.PI / 180;
+                    bullets.push(new Bullet(this.x, this.y - this.height / 2, Math.sin(rad) * 15, -Math.cos(rad) * 15));
+                });
+            } else if (this.powerup === 'fire') {
+                // [NEW] Super-Fire-Shot: 전방 7방향 거대 불꽃탄
+                const angles = [-45, -30, -15, 0, 15, 30, 45];
+                angles.forEach(angle => {
+                    const rad = angle * Math.PI / 180;
+                    const b = new Bullet(this.x, this.y - this.height / 2, Math.sin(rad) * 12, -Math.cos(rad) * 12);
+                    b.color = '#ffaa00';
+                    b.width = 8;
+                    b.height = 30;
+                    b.damage = 5; // 초강력 데미지
+                    bullets.push(b);
+                });
+            } else {
+                // 기본 샷 (멀티샷 반영)
+                let spread = 15;
+                let startOffset = -spread * (currentMultiShot - 1) / 2;
+                for (let i = 0; i < currentMultiShot; i++) {
+                    bullets.push(new Bullet(this.x + startOffset + (spread * i), this.y - this.height / 2));
+                }
+            }
+            playLaserSound(); // 레이저 사운드 재생 슉슉!
+            this.lastShotTime = currentTime;
+        }
+    }
+}
+
+// ==========================================
+// Bullet (총알) 클래스
+// ==========================================
+class Bullet {
+    constructor(x, y, vx = 0, vy = -25) {
+        this.x = x;
+        this.y = y;
+        this.width = 3;
+        this.height = 20;
+        this.radius = 4;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = '#00ffff';
+        this.damage = 1; // 기본 데미지
+        this.markedForDeletion = false;
+    }
+
+    update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        if (this.y + this.height < 0 || this.x < 0 || this.x > CANVAS_WIDTH) this.markedForDeletion = true;
+    }
+
+    draw() {
+        ctx.fillStyle = this.color;
+        // 가는 직선 형태의 레이저 렌더링
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = this.color;
+        ctx.fillRect(this.x - this.width / 2, this.y, this.width, this.height);
+        
+        ctx.fillStyle = '#ffffff'; // 중심부 흰색으로 더 밝게 처리
+        ctx.fillRect(this.x - 1, this.y, 2, this.height);
+        
+        ctx.shadowBlur = 0; // 리셋
+    }
+}
+
+// ==========================================
+// Enemy (적 비행기/운석) 클래스
+// ==========================================
+class Enemy {
+    constructor() {
+        this.radius = Math.random() * 20 + 15; 
+        
+        // --- 60% 확률로 플레이어 타겟팅(유도/곡선) 스폰 로직 ---
+        const isTargeting = Math.random() < 0.6 && player;
+        
+        // 이동 패턴을 위한 파동(Wave) 변수
+        this.angle = Math.random() * Math.PI * 2;
+        this.angleSpeed = Math.random() * 0.05 + 0.02; 
+        this.curveMagnitude = Math.random() * 1.5; 
+        
+        if (isTargeting) {
+            // [MOD] 자동차 스테이지(LV.3)도 여러 방향에서 출현하도록 제약 해제
+            const spawnEdge = Math.floor(Math.random() * 3); 
+            if(spawnEdge === 0) {
+                this.x = -this.radius * 2;
+                this.y = Math.random() * (CANVAS_HEIGHT / 2);
+            } else if (spawnEdge === 1) {
+                this.x = CANVAS_WIDTH + this.radius * 2;
+                this.y = Math.random() * (CANVAS_HEIGHT / 2);
+            } else {
+                this.x = Math.random() * (CANVAS_WIDTH - this.radius * 2) + this.radius;
+                this.y = -this.radius * 2;
+            }
+
+            const dx = player.x - this.x;
+            const dy = player.y - this.y;
+            const dist = Math.hypot(dx, dy);
+            
+            // [MOD] 자동차(LV.3)는 타 적군 대비 속도를 대폭 하향 (0.5~1.2)
+            let baseSpeed = (Math.random() * 3 + 1.5) * enemySpeedMultiplier;
+            if (currentStage === 3) baseSpeed = (Math.random() * 0.7 + 0.5) * enemySpeedMultiplier;
+
+            this.targetSpeedX = (dx / dist) * baseSpeed;
+            this.targetSpeedY = (dy / dist) * baseSpeed;
+            
+            this.speedX = this.targetSpeedX;
+            this.speedY = this.targetSpeedY;
+            
+        } else {
+            // 지그재그/하강 스폰
+            this.x = Math.random() * (CANVAS_WIDTH - this.radius * 2) + this.radius;
+            this.y = -this.radius;
+            
+            this.targetSpeedX = 0; 
+            // [MOD] 자동차(LV.3)는 하강 속도도 매우 느리게 조정
+            let baseSpeedY = (Math.random() * 2 + 1) * enemySpeedMultiplier;
+            if (currentStage === 3) baseSpeedY = (Math.random() * 0.5 + 0.8) * enemySpeedMultiplier;
+            
+            this.speedY = baseSpeedY;
+            this.curveMagnitude = Math.random() * 3 + 1; 
+        }
+        
+        this.hp = Math.floor(this.radius / 10); // 크기에 비례하는 체력
+
+        if (currentStage === 3) {
+            // 정예 레이싱 카 타겟 (사이즈 축소 및 다수 출현 연동)
+            this.modelType = 'racing_car';
+            this.radius = Math.random() * 6 + 15; // 더욱 축소 (15~21)
+            this.hp = 3;     // 다수 출현하므로 체력을 적절히 하향
+            this.carIndex = Math.floor(Math.random() * 6);
+            
+            this.zigzagFreq = Math.random() * 0.12 + 0.08;
+            this.zigzagAmp = Math.random() * 10 + 5;
+        } else {
+            // 다른 스테이지 이모지 할당
+            const pool = stageTargetPools[currentStage] || stageTargetPools[20];
+            this.model = pool[Math.floor(Math.random() * pool.length)];
+
+            // 비행기, 헬리콥터 같은 기계류 이모지면 고퀄리티 직접 그리기(벡터) 모드 적용
+            const planeEmojis = ['🛩️', '🚁', '🛸', '🚀'];
+            if (planeEmojis.includes(this.model)) {
+                this.modelType = 'plane';
+                const dangerHues = [0, 15, 30, 345];
+                const hue = dangerHues[Math.floor(Math.random() * dangerHues.length)];
+                this.color = `hsl(${hue}, 80%, 50%)`;
+            } else {
+                // 접시, 외계인, 인형 등은 쌩 이모지로 취급. 단, 2단계면 `draw`단에서 `special_plate`로 판정됨
+                this.modelType = 'emoji'; 
+                if(currentStage === 2) this.modelType = 'special_plate';
+                this.spinAngle = Math.random() * Math.PI * 2;
+                this.spinSpeed = (Math.random() - 0.5) * 0.1;
+
+                // 파티클용 테마 색상 지정
+                const colorMap = {
+                    2: '#ffffff', // 접시
+                    3: '#555555', // 자동차 파편
+                    6: '#8a2be2', // 행성
+                    9: '#ff4500', // 과일
+                    12: '#deb887', // 인형
+                    15: '#ff00ff', // 풍선
+                    16: '#ffc0cb', // 인형 (핑크/베이지 계열)
+                    20: '#8b4513'  // 건물 (브라운/벽돌 계열)
+                };
+                this.color = colorMap[currentStage] || '#ffffff';
+            }
+        }
+        this.markedForDeletion = false;
+    }
+
+    update() {
+        // 시간에 따른 각도 변화로 사인파(곡선) 이동 생성
+        this.angle += this.angleSpeed;
+        if (this.modelType === 'emoji') {
+            this.spinAngle += this.spinSpeed;
+        }
+        
+        // 타겟팅 객체라면 원래 속도에 파동을 살짝 더하고, 일반 객체면 X축으로 크게 물결침
+        let moveX = this.speedX + Math.sin(this.angle) * this.curveMagnitude;
+        
+        // [MOD] 레이싱 카 전용 부드러운 곡선 패턴 (정신없는 지그재그 제거)
+        if (this.modelType === 'racing_car') {
+            moveX = this.speedX + Math.sin(this.angle * 0.5) * this.zigzagAmp * 0.5;
+        }
+
+        this.x += moveX;
+        this.y += this.speedY;
+
+        // 화면 테두리에 부딪히면 튕기게 처리 (유도 비행기가 벽 밖으로 나가는 것 방지)
+        if (this.x - this.radius < 0) {
+            this.x = this.radius;
+            if(this.speedX < 0) this.speedX *= -1;
+        } else if (this.x + this.radius > CANVAS_WIDTH) {
+            this.x = CANVAS_WIDTH - this.radius;
+            if(this.speedX > 0) this.speedX *= -1;
+        }
+
+        // 화면 아래로 벗어나면 삭제 마킹
+        if (this.y - this.radius > CANVAS_HEIGHT) {
+            this.markedForDeletion = true;
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        if (this.modelType === 'racing_car' && racingCarSprites.imgs[this.carIndex]) {
+            // 레이싱 카 렌더링 (다양한 6종 모델)
+            const img = racingCarSprites.imgs[this.carIndex];
+            const rotateAngle = Math.PI; // 기본적으로 플레이어를 향해 아래로 내려옴
+            ctx.rotate(rotateAngle);
+
+            const renderWidth = this.radius * 3.5;
+            const renderHeight = renderWidth * (img.height / img.width);
+            
+            ctx.drawImage(
+                img,
+                -renderWidth / 2, -renderHeight / 2, renderWidth, renderHeight
+            );
+        }
+        else if (this.modelType === 'special_plate') {
+            // 2단계 스페셜 (하얀색 납작 접시)
+            this.modelType = 'special_plate';
+            ctx.rotate(this.spinAngle); 
+            ctx.fillStyle = '#ffffff'; 
+            ctx.shadowColor = '#aaaaaa';
+            ctx.shadowBlur = 5;
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, this.radius * 1.5, this.radius * 1.5, 0, 0, Math.PI*2);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, this.radius * 1.1, this.radius * 1.1, 0, 0, Math.PI*2);
+            ctx.stroke();
+        } 
+        else if (this.modelType === 'plane') {
+            // 방향에 맞춰 기수(머리)를 회전(rotate)
+            const currentThrustX = this.speedX + Math.sin(this.angle) * this.curveMagnitude;
+            const currentThrustY = this.speedY;
+            const rotateAngle = Math.atan2(currentThrustY, currentThrustX) - Math.PI / 2;
+            ctx.rotate(rotateAngle);
+            
+            // 적군 비행기 (빨간색 조차도 디테일하게!)
+            let w = this.radius * 2.5;
+            let h = this.radius * 2.5;
+
+            // 동체
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.moveTo(0, h/2); // 코 부분 (아래쪽)
+            ctx.lineTo(w/8, h/4);
+            ctx.lineTo(w/8, -h/2);
+            ctx.lineTo(-w/8, -h/2);
+            ctx.lineTo(-w/8, h/4);
+            ctx.closePath();
+            ctx.fill();
+
+            // 주 날개
+            ctx.beginPath();
+            ctx.moveTo(w/8, h/8);
+            ctx.lineTo(w/2, -h/6);
+            ctx.lineTo(w/8, -h/4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-w/8, h/8);
+            ctx.lineTo(-w/2, -h/6);
+            ctx.lineTo(-w/8, -h/4);
+            ctx.closePath();
+            ctx.fill();
+
+            // 꼬리 날개
+            ctx.beginPath();
+            ctx.moveTo(w/8, -h/3);
+            ctx.lineTo(w/3, -h/2);
+            ctx.lineTo(w/8, -h/2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(-w/8, -h/3);
+            ctx.lineTo(-w/3, -h/2);
+            ctx.lineTo(-w/8, -h/2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 적 콕핏(조종석) 장식 (검은색)
+            ctx.fillStyle = '#222';
+            ctx.beginPath();
+            ctx.ellipse(0, h/6, w/10, h/8, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // 이모지 타겟 렌더링 (자체적으로 빙글빙글 돌면서 떨어지도록 연출)
+            ctx.rotate(this.spinAngle);
+            ctx.font = `${this.radius * 2 * 1.2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.model, 0, 0);
+        }
+
+        ctx.restore();
+
+        // 체력바 렌더링
+        ctx.fillStyle = 'white';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`HP:${this.hp}`, this.x, this.y - this.radius - 10);
+    }
+}
+
+// ==========================================
+// Particle (폭발 파편) 클래스
+// ==========================================
+class Particle {
+    constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.radius = Math.random() * 3 + 1;
+        this.color = color;
+        // 사방으로 퍼지는 속도
+        this.speedX = (Math.random() - 0.5) * (Math.random() * 5 + 2);
+        this.speedY = (Math.random() - 0.5) * (Math.random() * 5 + 2);
+        this.alpha = 1; // 투명도
+        this.friction = 0.95; // 마찰력 (점점 느려짐)
+        this.markedForDeletion = false;
+    }
+
+    update() {
+        this.speedX *= this.friction;
+        this.speedY *= this.friction;
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha -= 0.02; // 서서히 사라짐
+
+        if (this.alpha <= 0) {
+            this.markedForDeletion = true;
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// ==========================================
+// Coin (적 파괴 시 드랍되는 재화) 클래스
+// ==========================================
+class Coin {
+    constructor(x, y, type = 'gold') {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'gold', 'red', 'blue'
+        this.radius = 12;
+        this.speedY = 2.5;
+        this.markedForDeletion = false;
+    }
+
+    update() {
+        this.y += this.speedY;
+
+        if (player) {
+            const dx = this.x - player.x;
+            const dy = this.y - player.y;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance < this.radius + player.width / 2) {
+                if (this.type === 'red') {
+                    player.powerup = 'red';
+                    player.powerupTimer = 10000; // 10초
+                } else if (this.type === 'blue') {
+                    player.powerup = 'blue';
+                    player.powerupTimer = 10000;
+                } else if (this.type === 'fire') {
+                    player.powerup = 'fire';
+                    player.powerupTimer = 8000; // 8초 (초강력하므로 짧게)
+                } else {
+                    thisGameCoins += 1;
+                }
+                playCoinSound();
+                this.markedForDeletion = true;
+            }
+        }
+
+        if (this.y > CANVAS_HEIGHT) {
+            this.markedForDeletion = true;
+        }
+    }
+
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        
+        // 코인 색상 분기
+        if (this.type === 'red') ctx.fillStyle = '#ff3333';
+        else if (this.type === 'blue') ctx.fillStyle = '#3333ff';
+        else if (this.type === 'fire') ctx.fillStyle = '#ff8800'; // 불꽃 색상
+        else ctx.fillStyle = '#ffd700';
+
+        ctx.beginPath();
+        ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        let symbol = '$';
+        if (this.type === 'red') symbol = 'P';
+        if (this.type === 'blue') symbol = 'W';
+        if (this.type === 'fire') symbol = 'F';
+        ctx.fillText(symbol, 0, 0);
+        ctx.restore();
+    }
+}
+
+// 화면 진동(Camera Shake) 변수
+let shakeTime = 0;
+let shakeAmount = 20;
+
+// ==========================================
+// 메인 게임 루프
+// ==========================================
+function gameLoop() {
+    if (!isPlaying) return;
+
+    ctx.save();
+    // 카메라 셰이크 로직
+    if (shakeTime > 0) {
+        const dx = (Math.random() - 0.5) * shakeAmount;
+        const dy = (Math.random() - 0.5) * shakeAmount;
+        ctx.translate(dx, dy);
+        shakeTime--;
+    }
+
+    // 화면 지우기 (투명도 있는 사각형으로 덮어 잔상 이펙트 연출)
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    ctx.fillRect(-50, -50, CANVAS_WIDTH + 100, CANVAS_HEIGHT + 100); // 쉐이크 시 빈틈 안 보이게 약간 넓게 지움
+
+    // 플레이어 업데이트 및 그리기
+    if (player) {
+        player.update();
+        player.draw();
+    }
+
+    // 시간 경과에 따른 적 스폰
+    const currentTime = Date.now();
+    let canSpawn = false;
+
+    // [MOD] 레이싱 카 스테이지 특별 제어 제거 (다른 스테이지와 동일하게 다수 출현)
+    if (currentTime - lastSpawntime > spawnInterval) {
+        canSpawn = true;
+    }
+
+    if (canSpawn) {
+        enemies.push(new Enemy());
+        lastSpawntime = currentTime;
+        
+        // 난이도 상승 로직
+        if (spawnInterval > 250) spawnInterval -= 5; 
+        enemySpeedMultiplier += 0.002;
+    }
+
+    // 총알 업데이트 (역순 순회하여 삭제 시 인덱스 밀림 방지)
+    bullets.forEach((bullet, index) => {
+        bullet.update();
+        bullet.draw();
+        if (bullet.markedForDeletion) {
+            bullets.splice(index, 1);
+        }
+    });
+
+    // 적 업데이트 및 그리기
+    enemies.forEach((enemy, index) => {
+        enemy.update();
+        enemy.draw();
+        
+        // 1. 플레이어와 적군 충돌 검사 (원형 vs 사각형 AABB 근사치)
+        const dx = player.x - enemy.x;
+        const dy = player.y - enemy.y;
+        const distance = Math.hypot(dx, dy);
+        
+        // 부딪혔을 때 (플레이어 피격 반경은 약간 작게 잡아 유저에게 유리하게 판정)
+        if (distance < enemy.radius + player.width / 3) {
+            // 플레이어 폭발 연출
+            for (let i = 0; i < 30; i++) {
+                particles.push(new Particle(player.x, player.y, '#ff0000'));
+                particles.push(new Particle(player.x, player.y, '#ffffff'));
+            }
+            shakeTime = 20; // 20프레임 동안 화면 진동
+            
+            setTimeout(() => {
+                gameOver();
+            }, 500); // 0.5초 뒤 게임오버 화면 띄워서 타격감 극대화
+            
+            isPlaying = false; // 루프 정지 (이벤트 무시 등)
+        }
+
+        // 2. 총알과 적군 충돌 검사
+        bullets.forEach((bullet, bIndex) => {
+            const bx = bullet.x - enemy.x;
+            const by = bullet.y - enemy.y;
+            const bDist = Math.hypot(bx, by);
+
+            if (bDist < enemy.radius + bullet.radius) {
+                // 명중: 타격 파티클 생성
+                for (let i = 0; i < 3; i++) {
+                    particles.push(new Particle(bullet.x, bullet.y, bullet.color));
+                }
+
+                // 타격음 분기: 접시면 쨍그랑! 아니면 뿅! (가벼운 소리로 대체 혹은 기존은 레이저 발사음만 존재하므로 타격음 추가 가능)
+                if (enemy.modelType === 'special_plate') {
+                    // 체력이 깎일 때마다 살짝살짝 깨지는 소리
+                    playGlassSound();
+                }
+
+                enemy.hp -= bullet.damage || 1;
+                bullet.markedForDeletion = true; // 총알 소멸
+
+                // 적 파괴
+                if (enemy.hp <= 0) {
+                    enemy.markedForDeletion = true;
+                    score += 100; // 코다리 부장 시원하게 폭렙 상승!
+                    
+                    if (enemy.modelType === 'special_plate') {
+                        // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
+                        playGlassSound(); 
+                        playGlassSound();
+                    }
+                    
+                    // [MOD] 모든 스테이지에서 파워업 코인 드랍 (확률 및 종류 개선)
+                    if (Math.random() < 0.35) {
+                        const rand = Math.random();
+                        if (rand < 0.08) coins.push(new Coin(enemy.x, enemy.y, 'fire')); // 불꽃 파워업
+                        else if (rand < 0.18) coins.push(new Coin(enemy.x, enemy.y, 'red'));
+                        else if (rand < 0.28) coins.push(new Coin(enemy.x, enemy.y, 'blue'));
+                        else coins.push(new Coin(enemy.x, enemy.y, 'gold'));
+                    }
+
+                    // 대형 폭발 이펙트 생성
+                    for (let i = 0; i < 15; i++) {
+                        particles.push(new Particle(enemy.x, enemy.y, enemy.color));
+                        particles.push(new Particle(enemy.x, enemy.y, '#ffffff'));
+                    }
+                }
+            }
+        });
+
+        if (enemy.markedForDeletion) {
+            enemies.splice(index, 1);
+        }
+    });
+
+    // 파티클 업데이트 및 그리기
+    particles.forEach((particle, index) => {
+        particle.update();
+        particle.draw();
+        if (particle.markedForDeletion) {
+            particles.splice(index, 1);
+        }
+    });
+
+    // 코인 업데이트, 스테이지 승격 로직 편입
+    let localTotal = totalCoins + thisGameCoins; // 게임 도중 스테이지 계산용 임시 총합
+    // 개발자 패널 조작으로 currentStage가 강제로 바뀐 경우에는 코인량에 의한 자동 레벨업 기능을 무시하여 자유로운 테스트를 보장합니다.
+    if (!window.isDeveloperStageOverridden) {
+        currentStage = Math.floor(localTotal / coinsPerStage) + 1; // 1단계 보장, 1000 코인 단위로 스테이지 상승
+        if(currentStage > 20) currentStage = 20; // 최대 20레벨 캡 적용
+    }
+
+    // 스테이지가 바뀌었을 때 화면 싹쓸이(클리어) 연출 및 배경색 전환 처리
+    if (currentStage !== prevStage) {
+        stageMessageTimer = 180; // (60fps 기준 약 3초 동안 알림 텍스트 표시)
+        
+        // 하늘에 떠 있던 기존 적군의 타입을 바꾸거나 클리어 시각 효과 연출
+        enemies.forEach(enemy => {
+            for (let i = 0; i < 15; i++) {
+                particles.push(new Particle(enemy.x, enemy.y, enemy.color || '#fff'));
+            }
+        });
+        enemies = []; // 적군 싹 치우기 (새로운 타겟들이 떨어지도록 비워줌)
+        bullets = []; // 현재 쏜 총알들도 화면에 남아 에러가 나지 않게 일괄 리셋
+        
+        // 배경색을 스테이지에 맞춰서 변경 (우주 느낌의 그라데이션)
+        const hue1 = (currentStage * 18) % 360; 
+        const hue2 = (currentStage * 18 + 40) % 360;
+        canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
+        
+        prevStage = currentStage;
+    }
+    
+    // 타겟 풀 이모지/스테이지 번호 등 라운드 변경 알림을 화면 중앙에 커다랗게 렌더링
+    if (stageMessageTimer > 0) {
+        ctx.save();
+        ctx.fillStyle = `rgba(255, 255, 255, ${stageMessageTimer / 180})`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // "STAGE X" 글자
+        ctx.font = 'bold 50px Arial';
+        ctx.fillText(`뽕뽕비행기: STAGE ${currentStage}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
+        
+        // 렌더링될 타겟 미리보기 글자
+        const pool = stageTargetPools[currentStage] || stageTargetPools[20];
+        ctx.font = 'bold 35px Arial';
+        ctx.fillText(`Targets: ${pool.join(' ')}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 + 30);
+        
+        ctx.restore();
+        stageMessageTimer--;
+    }
+    
+    // 코인 렌더링 호출
+    coins.forEach((coin, index) => {
+        coin.update();
+        coin.draw();
+        if (coin.markedForDeletion) {
+            coins.splice(index, 1);
+        }
+    });
+
+    ctx.restore(); // 카메라 셰이크 복구용
+
+    // HUD 업데이트 (현재 스테이지도 함께 표시)
+    scoreValue.innerText = `[LV.${currentStage}] Score: ` + score;
+    coinValue.innerText = thisGameCoins;
+
+    // 다음 프레임 예약
+    animationId = requestAnimationFrame(gameLoop);
+}
+
+// ==========================================
+// 게임 컨트롤 함수
+// ==========================================
+function startGame() {
+    // 이전 게임 루프가 실행 중이라면 정지 (중복 스폰/속도 버그 방지)
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+
+    // 게임 시작 시 초기화
+    score = 0;
+    thisGameCoins = 0;
+    isPlaying = true;
+    
+    // 오브젝트 배열 및 상태 리셋
+    bullets = [];
+    enemies = [];
+    particles = [];
+    coins = [];
+    lastSpawntime = Date.now();
+    spawnInterval = 750;
+    enemySpeedMultiplier = 1;
+    
+    // UI 로직 처리
+    startScreen.classList.remove('active');
+    startScreen.classList.add('hidden');
+    gameOverScreen.classList.remove('active');
+    gameOverScreen.classList.add('hidden');
+    shopScreen.classList.remove('active');
+    shopScreen.classList.add('hidden');
+    
+    // 광고 상태 초기화 (게임이 새로 시작되면 리셋)
+    isDoubleCoinUsed = false;
+    adReviveBtn.style.display = 'block'; // 부활 버튼 보이기
+    adDoubleCoinBtn.style.display = 'block';
+
+    // 게임 오브젝트 초기화 (화면 중앙 하단에 스폰)
+    player = new Player(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 150);
+    mouse.x = player.x;
+    mouse.y = player.y;
+
+    gameLoop();
+}
+
+function updateShopUI() {
+    shopCoinValue.innerText = totalCoins;
+    costFireRateElement.innerText = costFireRate;
+    costMultiShotElement.innerText = costMultiShot;
+
+    // 코인이 부족하거나, 최대 업그레이드 수치 도달 시 버튼 비활성화 처리
+    upgFireRateBtn.disabled = totalCoins < costFireRate || currentFireRate <= 50; 
+    upgMultiShotBtn.disabled = totalCoins < costMultiShot || currentMultiShot >= 5;
+}
+
+function gameOver() {
+    isPlaying = false;
+    cancelAnimationFrame(animationId);
+    
+    // [MOD] 게임 오버 시 전면 광고(Interstitial) 시도
+    showInterstitial();
+
+    // 최종 성과 계산 및 UI 활성화
+    if (!isRevived) {
+        totalCoins += thisGameCoins; // 획득 코인 계정 누적 (부활 전 1회만 누적 처리 방지)
+    }
+    
+    finalScoreValue.innerText = score;
+    acquiredCoinValue.innerText = thisGameCoins;
+    
+    gameOverScreen.classList.remove('hidden');
+    gameOverScreen.classList.add('active');
+    
+    // 이번 게임에 한 번이라도 부활했다면 더 이상 부활 불가
+    if (isRevived) {
+        adReviveBtn.style.display = 'none';
+    }
+}
+
+// ==========================================
+// 이벤트 리스너 등록
+// ==========================================
+
+// 마우스 및 터치 이벤트 처리
+function handlePointerMove(evt) {
+    if (!isPlaying) return;
+    
+    // 터치 이벤트는 touches 배열을 참초, 마우스는 그대로 사용
+    const targetX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+    const targetY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+
+    mouse.x = targetX;
+    mouse.y = targetY;
+}
+
+// 캔버스 자체에서 스크롤 방지를 한 번 더 보강
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault(); 
+    handlePointerMove(e);
+}, { passive: false });
+canvas.addEventListener('mousemove', handlePointerMove);
+
+// 터치/클릭 혹은 롱 프레스 시 브라우저 기본 우클릭/컨텍스트 메뉴 차단
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+});
+
+// 버튼 이벤트 - 터치 및 클릭 허용 (이벤트 전파 방지 옵션 추가)
+function bindTouchAndClick(element, handler) {
+    element.addEventListener('click', (e) => {
+        // UI 클릭이 캔버스 조종으로 새어나가지 않게 보호
+        e.stopPropagation(); 
+        handler(e);
+    });
+    element.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handler(e);
+    });
+}
+
+// 메인 메뉴 <-> 상점 이동 로직
+bindTouchAndClick(shopBtn, () => {
+    startScreen.classList.remove('active');
+    startScreen.classList.add('hidden');
+    shopScreen.classList.remove('hidden');
+    shopScreen.classList.add('active');
+    updateShopUI(); // 상점 진입 시 코인 최신화
+});
+
+bindTouchAndClick(closeShopBtn, () => {
+    shopScreen.classList.remove('active');
+    shopScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    startScreen.classList.add('active');
+});
+
+// 상점 업그레이드 로직
+bindTouchAndClick(upgFireRateBtn, () => {
+    if (totalCoins >= costFireRate && currentFireRate > 50) {
+        totalCoins -= costFireRate;
+        currentFireRate -= 20; // 발사 간격 줄어듦 (속도 증가)
+        costFireRate = Math.floor(costFireRate * 1.5); // 다음 비용 증가
+        updateShopUI();
+    }
+});
+
+bindTouchAndClick(upgMultiShotBtn, () => {
+    if (totalCoins >= costMultiShot && currentMultiShot < 5) {
+        totalCoins -= costMultiShot;
+        currentMultiShot += 1; // 총알 줄기 증가
+        costMultiShot = Math.floor(costMultiShot * 2.5);
+        updateShopUI();
+    }
+});
+
+// 광고 모의(Reward Ads) 로직 연결
+bindTouchAndClick(adDoubleCoinBtn, () => {
+    if (!isDoubleCoinUsed && thisGameCoins > 0) {
+        showRewarded(() => {
+            totalCoins += thisGameCoins; // 추가로 한 번 더 누적
+            thisGameCoins *= 2; // 화면 표기용
+            acquiredCoinValue.innerText = thisGameCoins;
+            
+            isDoubleCoinUsed = true;
+            adDoubleCoinBtn.style.display = 'none'; // 한 판에 한 번만
+        });
+    } else if (thisGameCoins === 0) {
+        alert("얻은 코인이 없어서 더블 혜택을 받을 수 없습니다.");
+    }
+});
+
+bindTouchAndClick(adReviveBtn, () => {
+    showRewarded(() => {
+        isRevived = true;
+        
+        // 무적 시간이나 화면 정리 후 이어하기 처리
+        player.x = CANVAS_WIDTH / 2;
+        player.y = CANVAS_HEIGHT - 100;
+        mouse.x = player.x;
+        mouse.y = player.y;
+        
+        // 화면상의 적 지우기 (원활한 부활을 위해)
+        enemies = [];
+        bullets = [];
+        
+        gameOverScreen.classList.remove('active');
+        gameOverScreen.classList.add('hidden');
+        
+        isPlaying = true;
+        lastSpawntime = Date.now(); // 스폰 타이머만 리셋
+        gameLoop();
+    });
+});
+
+// 메인 게임 시작 버튼
+bindTouchAndClick(startBtn, () => {
+    startGame();
+});
+
+bindTouchAndClick(restartBtn, () => {
+    if (!isRevived) {
+        // 이미 죽었을 때 코인 정산을 했으나, 다시 플레이어 조작 실증을 위해 부활 처리는 생략
+    }
+    startGame();
+});
+
+// ==========================================
+// 개발자 전용 디버깅 (치트) 패널 이벤트
+// ==========================================
+window.isDeveloperStageOverridden = false; // 수동으로 조작했는지 여부 기록
+
+bindTouchAndClick(btnStageUp, () => {
+    window.isDeveloperStageOverridden = true;
+    if (currentStage < 20) {
+        currentStage++;
+        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
+    }
+});
+
+bindTouchAndClick(btnStageDown, () => {
+    window.isDeveloperStageOverridden = true;
+    if (currentStage > 1) {
+        currentStage--;
+        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
+    }
+});
+
+bindTouchAndClick(btnCoinCheat, () => {
+    totalCoins += 10000;
+    // 게임안에 있는 경우와 화면 밖인 경우 모두 대응
+    updateShopUI(); 
+    alert("💸 코다리 부장의 비자금 10,000 코인 충전 완료! 💸");
+});
+
+bindTouchAndClick(restartBtn, () => {
+    isRevived = false;
+    
+    // 로비로 전송 (Restart 대신 로비로 가는 구조로 스킨화)
+    gameOverScreen.classList.remove('active');
+    gameOverScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    startScreen.classList.add('active');
+});
+
+// 초기 광고 초기화 실행
+initAds();

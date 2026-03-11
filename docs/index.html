@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <!-- 모바일 뷰포트 설정: 리사이징 방지, 터치 최적화 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>뽕뽕비행기: 갤럭시 디펜더</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 게임을 그릴 캔버스 영역 -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- 게임 오버레이 UI 래퍼 (시작, 스코어, 오버 화면 등) -->
+  <div id="uiLayer" style="pointer-events: none;">
+    
+    <div id="scoreBoard" style="pointer-events: auto;">
+      <span id="scoreValue">[LV.1] Score: 0</span> <br/>
+      🪙 <span id="coinValue">0</span>
+    </div>
+
+    <!-- 개발자 전용 디버그 패널 (스테이지 테스트용) -->
+    <div id="debugPanel" style="pointer-events: auto;">
+      <h3>🛠️ 코다리 테스트 패널</h3>
+      <div id="debugStageInfo">현재 단계: LV.1</div>
+      <div class="debug-controls">
+        <button id="btnStageDown" class="debug-btn">◀ 이전 단계</button>
+        <button id="btnStageUp" class="debug-btn">다음 단계 ▶</button>
+      </div>
+      <!-- 테스트를 위해 코인 무한 충전 버튼도 추가 -->
+      <button id="btnCoinCheat" class="debug-btn" style="margin-top:5px; background:#ff4444;">💸 코인 +10000 💸</button>
+    </div>
+
+    <!-- 시작 및 메인 메뉴 화면 -->
+  <div id="startScreen" class="overlay-screen active">
+      <h1>뽕뽕비행기</h1>
+      <p>Touch & Drag to Move</p>
+      
+      <div class="menu-buttons">
+        <button id="startBtn" class="action-btn">TAP TO START</button>
+        <button id="shopBtn" class="action-btn secondary">UPGRADE SHOP</button>
+      </div>
+  </div>
+
+  <!-- 상점 (업그레이드) 화면 -->
+  <div id="shopScreen" class="overlay-screen hidden">
+      <h2>UPGRADE SHOP</h2>
+      <p>My Coins: 🟡 <span id="shopCoinValue">0</span></p>
+      
+      <div class="shop-items">
+        <div class="shop-item">
+          <span>발사 속도 ⬆️ (Cost: <span id="costFireRate">50</span>)</span>
+          <button id="upgFireRateBtn" class="upg-btn">UPGRADE</button>
+        </div>
+        <div class="shop-item">
+          <span>날개 총알 추가 ⬆️ (Cost: <span id="costMultiShot">200</span>)</span>
+          <button id="upgMultiShotBtn" class="upg-btn">UPGRADE</button>
+        </div>
+      </div>
+      
+      <button id="closeShopBtn" class="action-btn secondary" style="margin-top: 20px;">BACK TO MENU</button>
+    </div>
+
+    <!-- 게임 오버 화면 -->
+  <div id="gameOverScreen" class="overlay-screen hidden">
+      <h2>GAME OVER</h2>
+      <p>FINAL SCORE: <span id="finalScoreValue">0</span></p>
+      <p>Acquired Coins: 🟡 <span id="acquiredCoinValue">0</span></p>
+      
+      <div class="reward-ads-container">
+        <!-- 보상형 광고 모의 버튼 -->
+        <button id="adReviveBtn" class="reward-btn">📺 무료 부활하기!</button>
+        <button id="adDoubleCoinBtn" class="reward-btn">📺 코인 2배 받기!</button>
+      </div>
+
+      <button id="restartBtn" class="action-btn">RESTART (Got To Lobby)</button>
+  </div>
+
+  </div>
+
+    <!-- Capacitor 코어 브릿지 (앱 환경 전용) -->
+    <script src="capacitor.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
