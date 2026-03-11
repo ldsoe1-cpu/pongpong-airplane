@@ -265,11 +265,17 @@ const upgMultiShotBtn = document.getElementById('upgMultiShotBtn');
 const adReviveBtn = document.getElementById('adReviveBtn');
 const adDoubleCoinBtn = document.getElementById('adDoubleCoinBtn');
 
-// 개발자 전용 패널 엘리먼트
+const debugPanel = document.getElementById('debugPanel');
 const debugStageInfo = document.getElementById('debugStageInfo');
 const btnStageUp = document.getElementById('btnStageUp');
 const btnStageDown = document.getElementById('btnStageDown');
 const btnCoinCheat = document.getElementById('btnCoinCheat');
+
+// URL 파라미터에 debug=true가 있으면 테스트 패널을 보여줌 (대표님 확인용)
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('debug') === 'true') {
+    if (debugPanel) debugPanel.style.display = 'flex';
+}
 
 // 캔버스 크기 - 화면에 꽉 차게 설정
 let CANVAS_WIDTH = window.innerWidth;

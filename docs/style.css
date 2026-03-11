@@ -190,7 +190,7 @@ body {
     z-index: 200;
     font-family: monospace;
     color: #fff;
-    display: flex;
+    display: none; /* 출시 버전에서는 숨김 처리 (URL 파라미터로 활성화 가능) */
     flex-direction: column;
     gap: 8px;
     font-size: 12px;
