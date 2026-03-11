@@ -1,0 +1,11 @@
+{
+  "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0"
+  },
+  "devDependencies": {
+    "@capacitor-community/admob": "^8.0.0",
+    "@capacitor/assets": "^3.0.5"
+  }
+}

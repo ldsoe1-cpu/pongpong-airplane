@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AirStrike</string>
+    <string name="title_activity_main">AirStrike</string>
+    <string name="package_name">com.kodari.airstrip</string>
+    <string name="custom_url_scheme">com.kodari.airstrip</string>
+</resources>

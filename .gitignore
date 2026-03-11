@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+.npm
+package-lock.json
+
+# Builds
+www/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/capacitor.settings.gradle
+
+# DS_Store
+.DS_Store
+
+# Capacitor generated files
+capacitor.config.json
