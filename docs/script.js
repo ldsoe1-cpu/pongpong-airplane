@@ -360,7 +360,7 @@ let coins = [];
 let currentStage = 1;
 let prevStage = 1;
 let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
-const coinsPerStage = 2000; // 2000 코인마다 스테이지 업 (대표님 테스트 편의를 위해 하향 조정)
+const coinsPerStage = 1000; // 1000 코인마다 스테이지 업 (대표님 검증 편의를 위해 더욱 하향)
 
 // 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
 const stageTargetPools = {
@@ -1375,6 +1375,33 @@ bindTouchAndClick(restartBtn, () => {
     gameOverScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
     startScreen.classList.add('active');
+});
+
+// ==========================================
+// 개발자 전용 디버깅 (치트) 패널 이벤트
+// ==========================================
+window.isDeveloperStageOverridden = false; // 수동으로 조작했는지 여부 기록
+
+bindTouchAndClick(btnStageUp, () => {
+    window.isDeveloperStageOverridden = true;
+    if (currentStage < 20) {
+        currentStage++;
+        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
+    }
+});
+
+bindTouchAndClick(btnStageDown, () => {
+    window.isDeveloperStageOverridden = true;
+    if (currentStage > 1) {
+        currentStage--;
+        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
+    }
+});
+
+bindTouchAndClick(btnCoinCheat, () => {
+    thisGameCoins += 10000; // 현재 게임 코인에 추가하여 즉시 레벨업 유도
+    updateShopUI();
+    alert("💸 코다리 부장의 비자금 10,000 코인 충전 완료! (즉시 스테이지 업 가능) 💸");
 });
 
 // 초기 광고 초기화 실행
