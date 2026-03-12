@@ -157,12 +157,16 @@ function playGlassSound() {
     }
 }
 
+let lastKlaxonTime = 0;
 function playKlaxonSound() {
+    const now = audioCtx ? audioCtx.currentTime : 0;
+    if (now - lastKlaxonTime < 0.1) return; // 0.1초 쿨다운 (연속 재생 방지)
+    lastKlaxonTime = now;
+
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
 
-    const now = audioCtx.currentTime;
-    // 경적 소리 (Klaxon): 두 가지 톤이 섞인 강한 소리
+    const currentTime = audioCtx.currentTime;
     const osc1 = audioCtx.createOscillator();
     const osc2 = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
@@ -170,20 +174,20 @@ function playKlaxonSound() {
     osc1.type = 'square';
     osc2.type = 'square';
 
-    osc1.frequency.setValueAtTime(440, now); // A4
-    osc2.frequency.setValueAtTime(349.23, now); // F4
+    osc1.frequency.setValueAtTime(440, currentTime);
+    osc2.frequency.setValueAtTime(349.23, currentTime);
 
-    gainNode.gain.setValueAtTime(0.1, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    gainNode.gain.setValueAtTime(0.08, currentTime); // 약간 볼륨 하향
+    gainNode.gain.exponentialRampToValueAtTime(0.001, currentTime + 0.2);
 
     osc1.connect(gainNode);
     osc2.connect(gainNode);
     gainNode.connect(audioCtx.destination);
 
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 0.3);
-    osc2.stop(now + 0.3);
+    osc1.start(currentTime);
+    osc2.start(currentTime);
+    osc1.stop(currentTime + 0.2);
+    osc2.stop(currentTime + 0.2);
 }
 
 const canvas = document.getElementById('gameCanvas');
@@ -356,7 +360,7 @@ let coins = [];
 let currentStage = 1;
 let prevStage = 1;
 let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
-const coinsPerStage = 10000; // 10000 코인 모일 때마다 스테이지 업업! (대표님 요청상향)
+const coinsPerStage = 5000; // 5000 코인으로 하향 조정 (빠른 스테이지 확인용)
 
 // 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
 const stageTargetPools = {
@@ -797,7 +801,7 @@ class Enemy {
             ctx.beginPath();
             ctx.ellipse(0, h / 6, w / 10, h / 8, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillText(this.model, 0, 0);
+            // [MOD] 비행기 모드에서 이모지 중복 텍스트 제거 (깔끔함 유지)
         } else if (this.modelType === 'planet_img') {
             // 8단계 실제 행성 이미지 렌더링
             const img = planetSprites[this.model];
