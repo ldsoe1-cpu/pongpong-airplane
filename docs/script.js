@@ -803,6 +803,13 @@ class Enemy {
                 ctx.textBaseline = 'middle';
                 ctx.fillText('🪐', 0, 0);
             }
+        } else {
+            // 기본 이모지 및 기타 기체 렌더링 (Stage 1, 4, 5+ 등)
+            ctx.rotate(this.spinAngle);
+            ctx.font = `${this.radius * 2}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(this.model, 0, 0);
         }
 
         ctx.restore();
