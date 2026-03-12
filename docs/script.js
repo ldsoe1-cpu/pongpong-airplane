@@ -801,7 +801,7 @@ class Enemy {
         } else if (this.modelType === 'planet_img') {
             // 8단계 실제 행성 이미지 렌더링
             const img = planetSprites[this.model];
-            if (img) {
+            if (img && img.complete && img.width > 0) {
                 const size = this.radius * 2.5;
                 ctx.drawImage(img, -size / 2, -size / 2, size, size);
             } else {
