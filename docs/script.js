@@ -1391,7 +1391,3 @@ bindTouchAndClick(restartBtn, () => {
 
 // 초기 광고 초기화 실행
 initAds();
-/ /  
- R e - d e p l o y  
- t r i g g e r  
- 
