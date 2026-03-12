@@ -622,8 +622,7 @@ class Enemy {
             this.modelType = 'racing_car';
             this.radius = Math.random() * 6 + 18;
             this.hp = 3;
-            this.carIndex = Math.floor(Math.random() * racingCarSprites.imgs.length);
-            playKlaxonSound(); // 자동차 등장 시 경적 소리!
+            this.carIndex = Math.floor(Math.random() * (racingCarSprites.imgs.length || 1));
 
             this.zigzagFreq = Math.random() * 0.12 + 0.08;
             this.zigzagAmp = Math.random() * 10 + 5;
@@ -705,16 +704,25 @@ class Enemy {
         if (this.modelType === 'racing_car' && racingCarSprites.imgs[this.carIndex]) {
             // 레이싱 카 렌더링 (다양한 6종 모델)
             const img = racingCarSprites.imgs[this.carIndex];
-            const rotateAngle = Math.PI; // 기본적으로 플레이어를 향해 아래로 내려옴
-            ctx.rotate(rotateAngle);
+            if (img && img.complete && img.width > 0) { // 안전성 검사 추가
+                const rotateAngle = Math.PI; // 기본적으로 플레이어를 향해 아래로 내려옴
+                ctx.rotate(rotateAngle);
 
-            const renderWidth = this.radius * 3.5;
-            const renderHeight = renderWidth * (img.height / img.width);
+                const renderWidth = this.radius * 3.5;
+                const renderHeight = renderWidth * (img.height / img.width);
 
-            ctx.drawImage(
-                img,
-                -renderWidth / 2, -renderHeight / 2, renderWidth, renderHeight
-            );
+                ctx.drawImage(
+                    img,
+                    -renderWidth / 2, -renderHeight / 2, renderWidth, renderHeight
+                );
+            } else {
+                // 이미지 로드 안 된 경우 이모지로 대체
+                ctx.rotate(this.spinAngle || 0);
+                ctx.font = `${this.radius * 2}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🚗', 0, 0);
+            }
         }
         else if (this.modelType === 'special_plate') {
             // 2단계 스페셜 (하얀색 납작 접시)
@@ -1030,6 +1038,10 @@ function gameLoop() {
                 if (enemy.modelType === 'special_plate') {
                     // 체력이 깎일 때마다 살짝살짝 깨지는 소리
                     playGlassSound();
+                }
+                if (enemy.modelType === 'racing_car') {
+                    // 자동차는 총알에 맞았을 때 경적 소리! (대표님 수정 요청)
+                    playKlaxonSound();
                 }
 
                 enemy.hp -= bullet.damage || 1;
