@@ -157,6 +157,35 @@ function playGlassSound() {
     }
 }
 
+function playKlaxonSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const now = audioCtx.currentTime;
+    // 경적 소리 (Klaxon): 두 가지 톤이 섞인 강한 소리
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+
+    osc1.type = 'square';
+    osc2.type = 'square';
+
+    osc1.frequency.setValueAtTime(440, now); // A4
+    osc2.frequency.setValueAtTime(349.23, now); // F4
+
+    gainNode.gain.setValueAtTime(0.1, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+    osc1.connect(gainNode);
+    osc2.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 0.3);
+    osc2.stop(now + 0.3);
+}
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -203,42 +232,53 @@ loadAndRemoveBackground('player_lv2.png', 2);
 loadAndRemoveBackground('player_lv3.png', 3);
 loadAndRemoveBackground('player_lv4.png', 4);
 
-// 적군 레이싱 카 에셋 로드 (Stage 3 정예 타겟 - 3x2 스프라이트 시트)
-const imgRacingCarSheet = new Image();
-imgRacingCarSheet.src = 'racing_car_spritesheet.png';
-const racingCarSprites = { imgs: [] }; // 6종의 레이싱 카 저장용
+// 적군 레이싱 카 에셋 로드 (개별 고화질 이미지로 교체)
+const racingCarSprites = { imgs: [] };
+const carSources = ['car_new_1.png', 'car_new_2.png', 'car_new_3.png'];
 
-imgRacingCarSheet.onload = () => {
-    const cols = 3;
-    const rows = 2;
-    const carW = imgRacingCarSheet.width / cols;
-    const carH = imgRacingCarSheet.height / rows;
-
-    for (let i = 0; i < 6; i++) {
+carSources.forEach(src => {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
         const offCanvas = document.createElement('canvas');
-        offCanvas.width = carW;
-        offCanvas.height = carH;
+        offCanvas.width = img.width;
+        offCanvas.height = img.height;
         const octx = offCanvas.getContext('2d');
-
-        const r = Math.floor(i / cols);
-        const c = i % cols;
-        octx.drawImage(imgRacingCarSheet, c * carW, r * carH, carW, carH, 0, 0, carW, carH);
+        octx.drawImage(img, 0, 0);
 
         try {
-            const imgData = octx.getImageData(0, 0, carW, carH);
+            const imgData = octx.getImageData(0, 0, img.width, img.height);
             const data = imgData.data;
+            const bgR = data[0], bgG = data[1], bgB = data[2];
             for (let j = 0; j < data.length; j += 4) {
-                if (data[j] > 240 && data[j + 1] > 240 && data[j + 2] > 240) {
+                if (Math.abs(data[j] - bgR) < 30 && Math.abs(data[j + 1] - bgG) < 30 && Math.abs(data[j + 2] - bgB) < 30) {
                     data[j + 3] = 0;
                 }
             }
             octx.putImageData(imgData, 0, 0);
             racingCarSprites.imgs.push(offCanvas);
         } catch (e) {
-            racingCarSprites.imgs.push(offCanvas);
+            racingCarSprites.imgs.push(img);
         }
-    }
+    };
+});
+
+// 8단계 행성 이미지 로드
+const planetSprites = {};
+const planetSources = {
+    'mars': 'planet_mars.png',
+    'jupiter': 'planet_jupiter.png',
+    'saturn': 'planet_saturn.png',
+    'uranus': 'planet_uranus.png'
 };
+
+Object.keys(planetSources).forEach(key => {
+    const img = new Image();
+    img.src = planetSources[key];
+    img.onload = () => {
+        planetSprites[key] = img;
+    };
+});
 
 // UI 엘리먼트 가져오기
 const uiLayer = document.getElementById('uiLayer');
@@ -327,7 +367,7 @@ const stageTargetPools = {
     5: ['🛸', '🚀'],       // 5단계: 미확인 비행물체
     6: ['🪐', '🌑', '🌕', '🌍', '☄️', '🌌', '🛸'], // 6단계: 행성 (목성, 천왕성, 해왕성 테마)
     7: ['🥢', '🍴', '🥄'], // 7단계: 식기류
-    8: ['🌎', '🌍', '🌏'], // 8단계: 지구본
+    8: ['mars', 'jupiter', 'saturn', 'uranus'], // 8단계: 실제 행성 이미지
     9: ['🍎', '🍐', '🥭', '🍑', '🍋', '🍈'], // 9단계: 과일 (사과, 배, 망고, 복숭아, 레몬 등)
     10: ['⚽', '🏀', '🏈', '⚾'], // 10단계: 스포츠 공
     11: ['💎', '💰', '👑', '💵'], // 11단계: 보석/골드
@@ -580,9 +620,10 @@ class Enemy {
         if (currentStage === 3) {
             // 정예 레이싱 카 타겟 (사이즈 축소 및 다수 출현 연동)
             this.modelType = 'racing_car';
-            this.radius = Math.random() * 6 + 15; // 더욱 축소 (15~21)
-            this.hp = 3;     // 다수 출현하므로 체력을 적절히 하향
-            this.carIndex = Math.floor(Math.random() * 6);
+            this.radius = Math.random() * 6 + 18;
+            this.hp = 3;
+            this.carIndex = Math.floor(Math.random() * racingCarSprites.imgs.length);
+            playKlaxonSound(); // 자동차 등장 시 경적 소리!
 
             this.zigzagFreq = Math.random() * 0.12 + 0.08;
             this.zigzagAmp = Math.random() * 10 + 5;
@@ -602,6 +643,8 @@ class Enemy {
                 // 접시, 외계인, 인형 등은 쌩 이모지로 취급. 단, 2단계면 `draw`단에서 `special_plate`로 판정됨
                 this.modelType = 'emoji';
                 if (currentStage === 2) this.modelType = 'special_plate';
+                if (currentStage === 8) this.modelType = 'planet_img'; // 8단계 이미지 모드
+
                 this.spinAngle = Math.random() * Math.PI * 2;
                 this.spinSpeed = (Math.random() - 0.5) * 0.1;
 
@@ -746,22 +789,25 @@ class Enemy {
             ctx.beginPath();
             ctx.ellipse(0, h / 6, w / 10, h / 8, 0, 0, Math.PI * 2);
             ctx.fill();
-        } else {
-            // 이모지 타겟 렌더링 (자체적으로 빙글빙글 돌면서 떨어지도록 연출)
-            ctx.rotate(this.spinAngle);
-            ctx.font = `${this.radius * 2 * 1.2}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
             ctx.fillText(this.model, 0, 0);
+        } else if (this.modelType === 'planet_img') {
+            // 8단계 실제 행성 이미지 렌더링
+            const img = planetSprites[this.model];
+            if (img) {
+                const size = this.radius * 2.5;
+                ctx.drawImage(img, -size / 2, -size / 2, size, size);
+            } else {
+                ctx.rotate(this.spinAngle);
+                ctx.font = `${this.radius * 2 * 1.2}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🪐', 0, 0);
+            }
         }
 
         ctx.restore();
 
-        // 체력바 렌더링
-        ctx.fillStyle = 'white';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(`HP:${this.hp}`, this.x, this.y - this.radius - 10);
+        // [MOD] HP 텍스트 렌더링 제거 - 대표님 요청
     }
 }
 
