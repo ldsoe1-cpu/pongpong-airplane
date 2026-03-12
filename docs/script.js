@@ -360,7 +360,7 @@ let coins = [];
 let currentStage = 1;
 let prevStage = 1;
 let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
-const coinsPerStage = 5000; // 5000 코인으로 하향 조정 (빠른 스테이지 확인용)
+const coinsPerStage = 2000; // 2000 코인마다 스테이지 업 (대표님 테스트 편의를 위해 하향 조정)
 
 // 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
 const stageTargetPools = {
@@ -1099,8 +1099,9 @@ function gameLoop() {
     let localTotal = totalCoins + thisGameCoins; // 게임 도중 스테이지 계산용 임시 총합
     // 개발자 패널 조작으로 currentStage가 강제로 바뀐 경우에는 코인량에 의한 자동 레벨업 기능을 무시하여 자유로운 테스트를 보장합니다.
     if (!window.isDeveloperStageOverridden) {
-        currentStage = Math.floor(localTotal / coinsPerStage) + 1; // 1단계 보장, 1000 코인 단위로 스테이지 상승
-        if (currentStage > 20) currentStage = 20; // 최대 20레벨 캡 적용
+        // [MOD] 대표님 의견 반영: 모든 게임은 1단계부터 시작하며, 이번 판에서 얻은 코인(thisGameCoins)으로만 레벨업 판정
+        currentStage = Math.floor(thisGameCoins / coinsPerStage) + 1;
+        if (currentStage > 20) currentStage = 20;
     }
 
     // 스테이지가 바뀌었을 때 화면 싹쓸이(클리어) 연출 및 배경색 전환 처리
@@ -1362,49 +1363,13 @@ bindTouchAndClick(adReviveBtn, () => {
     });
 });
 
-// 메인 게임 시작 버튼
+// 버튼 이벤트 - 터치 및 클릭 허용 (이벤트 전파 방지 옵션 추가)
 bindTouchAndClick(startBtn, () => {
     startGame();
 });
 
 bindTouchAndClick(restartBtn, () => {
-    if (!isRevived) {
-        // 이미 죽었을 때 코인 정산을 했으나, 다시 플레이어 조작 실증을 위해 부활 처리는 생략
-    }
-    startGame();
-});
-
-// ==========================================
-// 개발자 전용 디버깅 (치트) 패널 이벤트
-// ==========================================
-window.isDeveloperStageOverridden = false; // 수동으로 조작했는지 여부 기록
-
-bindTouchAndClick(btnStageUp, () => {
-    window.isDeveloperStageOverridden = true;
-    if (currentStage < 20) {
-        currentStage++;
-        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
-    }
-});
-
-bindTouchAndClick(btnStageDown, () => {
-    window.isDeveloperStageOverridden = true;
-    if (currentStage > 1) {
-        currentStage--;
-        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
-    }
-});
-
-bindTouchAndClick(btnCoinCheat, () => {
-    totalCoins += 10000;
-    // 게임안에 있는 경우와 화면 밖인 경우 모두 대응
-    updateShopUI();
-    alert("💸 코다리 부장의 비자금 10,000 코인 충전 완료! 💸");
-});
-
-bindTouchAndClick(restartBtn, () => {
     isRevived = false;
-
     // 로비로 전송 (Restart 대신 로비로 가는 구조로 스킨화)
     gameOverScreen.classList.remove('active');
     gameOverScreen.classList.add('hidden');
