@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <!-- 모바일 뷰포트 설정: 리사이징 방지, 터치 최적화 -->
@@ -7,21 +8,24 @@
   <title>뽕뽕비행기: 갤럭시 디펜더</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <!-- 게임을 그릴 캔버스 영역 -->
   <canvas id="gameCanvas"></canvas>
 
   <!-- 게임 오버레이 UI 래퍼 (시작, 스코어, 오버 화면 등) -->
   <div id="uiLayer" style="pointer-events: none;">
-    
+
     <div id="scoreBoard" style="pointer-events: auto;">
-      <span id="scoreValue">[LV.1] Score: 0</span> <br/>
+      <span id="scoreValue">[LV.1] Score: 0</span> <br />
       🪙 <span id="coinValue">0</span>
       <!-- 다음 레벨까지의 진행도 표시 (대표님 확인용) -->
-      <div id="levelProgressContainer" style="width: 150px; height: 8px; background: rgba(255,255,255,0.2); margin-top: 8px; border-radius: 4px; border: 1px solid #45f3ff; overflow: hidden;">
+      <div id="levelProgressContainer"
+        style="width: 150px; height: 8px; background: rgba(255,255,255,0.2); margin-top: 8px; border-radius: 4px; border: 1px solid #45f3ff; overflow: hidden;">
         <div id="levelProgressBar" style="width: 0%; height: 100%; background: #45f3ff; transition: width 0.3s;"></div>
       </div>
-      <div id="levelProgressText" style="font-size: 11px; color: #45f3ff; margin-top: 4px; text-shadow: 0 0 3px #000;">다음 레벨까지: 0 / 10,000</div>
+      <div id="levelProgressText" style="font-size: 11px; color: #45f3ff; margin-top: 4px; text-shadow: 0 0 3px #000;">
+        다음 레벨까지: 0 / 10,000</div>
     </div>
 
     <!-- 개발자 전용 디버그 패널 (스테이지 테스트용) -->
@@ -37,21 +41,21 @@
     </div>
 
     <!-- 시작 및 메인 메뉴 화면 -->
-  <div id="startScreen" class="overlay-screen active">
+    <div id="startScreen" class="overlay-screen active">
       <h1>뽕뽕비행기</h1>
       <p>Touch & Drag to Move</p>
-      
+
       <div class="menu-buttons">
         <button id="startBtn" class="action-btn">TAP TO START</button>
         <button id="shopBtn" class="action-btn secondary">UPGRADE SHOP</button>
       </div>
-  </div>
+    </div>
 
-  <!-- 상점 (업그레이드) 화면 -->
-  <div id="shopScreen" class="overlay-screen hidden">
+    <!-- 상점 (업그레이드) 화면 -->
+    <div id="shopScreen" class="overlay-screen hidden">
       <h2>UPGRADE SHOP</h2>
       <p>My Coins: 🟡 <span id="shopCoinValue">0</span></p>
-      
+
       <div class="shop-items">
         <div class="shop-item">
           <span>발사 속도 ⬆️ (Cost: <span id="costFireRate">50</span>)</span>
@@ -62,16 +66,16 @@
           <button id="upgMultiShotBtn" class="upg-btn">UPGRADE</button>
         </div>
       </div>
-      
+
       <button id="closeShopBtn" class="action-btn secondary" style="margin-top: 20px;">BACK TO MENU</button>
     </div>
 
     <!-- 게임 오버 화면 -->
-  <div id="gameOverScreen" class="overlay-screen hidden">
+    <div id="gameOverScreen" class="overlay-screen hidden">
       <h2>GAME OVER</h2>
       <p>FINAL SCORE: <span id="finalScoreValue">0</span></p>
       <p>Acquired Coins: 🟡 <span id="acquiredCoinValue">0</span></p>
-      
+
       <div class="reward-ads-container">
         <!-- 보상형 광고 모의 버튼 -->
         <button id="adReviveBtn" class="reward-btn">📺 무료 부활하기!</button>
@@ -79,12 +83,13 @@
       </div>
 
       <button id="restartBtn" class="action-btn">RESTART (Got To Lobby)</button>
-  </div>
+    </div>
 
   </div>
 
-    <!-- Capacitor 코어 브릿지 (앱 환경 전용) -->
-    <script src="capacitor.js"></script>
-    <script src="script.js"></script>
+  <!-- Capacitor 코어 브릿지 (앱 환경 전용) -->
+  <script src="capacitor.js"></script>
+  <script src="script.js?v=4"></script>
 </body>
+
 </html>
