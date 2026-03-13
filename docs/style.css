@@ -10,7 +10,7 @@ body {
   background-color: #0b0c10;
   color: #fff;
   overflow: hidden;
-  touch-action: none; 
+  touch-action: none;
   user-select: none;
 }
 
@@ -29,7 +29,8 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* 캔버스로 터치 이벤트가 통과하도록 설정 */
+  pointer-events: none;
+  /* 캔버스로 터치 이벤트가 통과하도록 설정 */
   z-index: 10;
 }
 
@@ -43,7 +44,8 @@ body {
   justify-content: space-between;
 }
 
-#scoreBoard, #coinBoard {
+#scoreBoard,
+#coinBoard {
   font-size: 1.2rem;
   font-weight: bold;
 }
@@ -70,7 +72,8 @@ body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  pointer-events: auto; /* 버튼 클릭을 위해 활성화 */
+  pointer-events: auto;
+  /* 버튼 클릭을 위해 활성화 */
   transition: opacity 0.3s ease;
 }
 
@@ -162,6 +165,7 @@ body {
   font-weight: bold;
   cursor: pointer;
 }
+
 .upg-btn:disabled {
   background: #555;
   color: #888;
@@ -169,65 +173,66 @@ body {
 }
 
 .shop-btn:disabled {
-    background-color: #555;
-    color: #888;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
+  background-color: #555;
+  color: #888;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ==========================================
    개발자 전용 디버깅 패널 (스테이지 강제 점프)
 ========================================== */
 #debugPanel {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: rgba(0, 0, 0, 0.7);
-    border: 1px solid #ff00ff;
-    padding: 10px;
-    border-radius: 8px;
-    z-index: 200;
-    font-family: monospace;
-    color: #fff;
-    display: none; /* 출시 버전에서는 숨김 처리 (URL 파라미터로 활성화 가능) */
-    flex-direction: column;
-    gap: 8px;
-    font-size: 12px;
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid #ff00ff;
+  padding: 10px;
+  border-radius: 8px;
+  z-index: 200;
+  font-family: monospace;
+  color: #fff;
+  display: none;
+  /* 출시 버전에서는 숨김 처리 (URL 파라미터로 활성화 가능) */
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
 }
 
 #debugPanel h3 {
-    margin: 0;
-    color: #ff00ff;
-    text-align: center;
-    font-size: 14px;
+  margin: 0;
+  color: #ff00ff;
+  text-align: center;
+  font-size: 14px;
 }
 
 .debug-controls {
-    display: flex;
-    justify-content: space-between;
-    gap: 5px;
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
 }
 
 .debug-btn {
-    background: #333;
-    color: #fff;
-    border: 1px solid #ff00ff;
-    padding: 5px 10px;
-    cursor: pointer;
-    border-radius: 4px;
-    font-size: 12px;
-    transition: background 0.2s;
+  background: #333;
+  color: #fff;
+  border: 1px solid #ff00ff;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 12px;
+  transition: background 0.2s;
 }
 
 .debug-btn:hover {
-    background: #ff00ff;
+  background: #ff00ff;
 }
 
 #debugStageInfo {
-    text-align: center;
-    color: #00ffcc;
-    font-weight: bold;
+  text-align: center;
+  color: #00ffcc;
+  font-weight: bold;
 }
 
 /* 보상형 광고 모의 버튼 컨테이너 */
@@ -239,7 +244,8 @@ body {
 }
 
 .reward-btn {
-  background-color: #e50914; /* 유튜브/넷플릭스 넷 느낌의 붉은 광고버튼 */
+  background-color: #e50914;
+  /* 유튜브/넷플릭스 넷 느낌의 붉은 광고버튼 */
   color: white;
   border: none;
   padding: 12px 20px;
@@ -249,6 +255,7 @@ body {
   cursor: pointer;
   box-shadow: 0 0 10px #e50914;
 }
+
 .reward-btn:active {
   transform: scale(0.98);
 }

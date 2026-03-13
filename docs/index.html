@@ -17,6 +17,11 @@
     <div id="scoreBoard" style="pointer-events: auto;">
       <span id="scoreValue">[LV.1] Score: 0</span> <br/>
       🪙 <span id="coinValue">0</span>
+      <!-- 다음 레벨까지의 진행도 표시 (대표님 확인용) -->
+      <div id="levelProgressContainer" style="width: 150px; height: 8px; background: rgba(255,255,255,0.2); margin-top: 8px; border-radius: 4px; border: 1px solid #45f3ff; overflow: hidden;">
+        <div id="levelProgressBar" style="width: 0%; height: 100%; background: #45f3ff; transition: width 0.3s;"></div>
+      </div>
+      <div id="levelProgressText" style="font-size: 11px; color: #45f3ff; margin-top: 4px; text-shadow: 0 0 3px #000;">다음 레벨까지: 0 / 10,000</div>
     </div>
 
     <!-- 개발자 전용 디버그 패널 (스테이지 테스트용) -->

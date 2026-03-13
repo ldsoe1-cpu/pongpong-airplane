@@ -216,16 +216,19 @@ function loadAndRemoveBackground(src, level) {
             const bgR = data[0], bgG = data[1], bgB = data[2];
 
             for (let i = 0; i < data.length; i += 4) {
-                const r = data[i], g = data[i + 1], b = data[i + 2];
-                // 배경색과 오차범위 40 이내로 유사하면 알파(투명도) 값을 0으로 만듦
-                if (Math.abs(r - bgR) < 50 && Math.abs(g - bgG) < 50 && Math.abs(b - bgB) < 50) {
+                const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+                // 배경색과 오차범위 70 이내로 유사하거나, 완전한 흰색에 가까우면 투명화
+                const isBgColor = Math.abs(r - bgR) < 70 && Math.abs(g - bgG) < 70 && Math.abs(b - bgB) < 70;
+                const isVeryLight = r > 200 && g > 200 && b > 200; // 밝은 색 영역 광범위 타겟팅
+
+                if (isBgColor || isVeryLight) {
                     data[i + 3] = 0;
                 }
             }
             octx.putImageData(imgData, 0, 0);
             playerSprites[level] = offCanvas; // 투명화가 완료된 캔버스를 에셋으로 사용
         } catch (e) {
-            console.error("Canvas CORS data error:", e);
+            console.warn("Canvas CORS/Data access blocked. Using original image with background potential.", e);
             playerSprites[level] = img; // 로컬 보안 에러 시 원본 이미지 대체
         }
     };
@@ -255,7 +258,11 @@ carSources.forEach(src => {
             const data = imgData.data;
             const bgR = data[0], bgG = data[1], bgB = data[2];
             for (let j = 0; j < data.length; j += 4) {
-                if (Math.abs(data[j] - bgR) < 30 && Math.abs(data[j + 1] - bgG) < 30 && Math.abs(data[j + 2] - bgB) < 30) {
+                const r = data[j], g = data[j + 1], b = data[j + 2], a = data[j + 3];
+                const isBgColor = Math.abs(r - bgR) < 60 && Math.abs(g - bgG) < 60 && Math.abs(b - bgB) < 60;
+                const isVeryLight = r > 200 && g > 200 && b > 200;
+
+                if (isBgColor || isVeryLight) {
                     data[j + 3] = 0;
                 }
             }
@@ -360,7 +367,7 @@ let coins = [];
 let currentStage = 1;
 let prevStage = 1;
 let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
-const coinsPerStage = 1000; // 1000 코인마다 스테이지 업 (대표님 검증 편의를 위해 더욱 하향)
+const coinsPerStage = 10000; // 10,000 코인마다 스테이지 업 (대표님 요청 사항)
 
 // 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
 const stageTargetPools = {
@@ -1159,6 +1166,16 @@ function gameLoop() {
     // HUD 업데이트 (현재 스테이지도 함께 표시)
     scoreValue.innerText = `[LV.${currentStage}] Score: ` + score;
     coinValue.innerText = localTotal; // 실시간 총합 코인을 표시하여 유저가 스테이지 업 시점을 알게 함
+
+    // [ADD] 다음 레벨까지의 진행도 표시 (대표님 확인용)
+    const nextLevelCoinGoal = currentStage * coinsPerStage;
+    const currentProgressCoins = thisGameCoins % coinsPerStage;
+    const progressPercent = (currentProgressCoins / coinsPerStage) * 100;
+
+    const bar = document.getElementById('levelProgressBar');
+    if (bar) bar.style.width = progressPercent + '%';
+    const progressText = document.getElementById('levelProgressText');
+    if (progressText) progressText.innerText = `다음 레벨까지: ${currentProgressCoins.toLocaleString()} / ${coinsPerStage.toLocaleString()}`;
 
     // 다음 프레임 예약
     animationId = requestAnimationFrame(gameLoop);
