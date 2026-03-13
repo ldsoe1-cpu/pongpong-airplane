@@ -481,7 +481,7 @@ Object.keys(planetSources).forEach(key => {
     };
 });
 
-// [NEW] 12단계 팬더 몸통 에셋 로드 (대표님 요청 "몸통까지 그려줘" + 고화질 v3 스티커 에셋 적용)
+// [NEW] 12단계 팬더 몸통 에셋 로드 (대표님 요청 "몸통까지 그려줘" + 고화질 v4 에셋 적용)
 const pandaSprite = { img: null };
 function loadPandaSprite(src) {
     const img = new Image();
@@ -496,15 +496,15 @@ function loadPandaSprite(src) {
         try {
             const imgData = octx.getImageData(0, 0, img.width, img.height);
             const data = imgData.data;
-            // [개선] v3 에셋의 초록색(Chroma Key) 배경 제거 및 테두리 보존
+            // [개선] v4 에셋의 파란색(Chroma Key) 배경 제거
             for (let j = 0; j < data.length; j += 4) {
                 const r = data[j], g = data[j + 1], b = data[j + 2];
-                // 초록색 영역 (G가 R, B보다 현격히 큰 경우) 투명화
-                if (g > 150 && r < 100 && b < 100) {
+                // 파란색 영역 (B가 R, G보다 현격히 큰 경우) 투명화
+                if (b > 150 && r < 120 && g < 120) {
                     data[j + 3] = 0;
                 }
-                // 아주 밝은 흰색(배경 잔재) 보정
-                else if (r > 245 && g > 245 && b > 245) {
+                // 주변부 미세 보정 (아주 어두운 파란색 등)
+                else if (b > 100 && r < 50 && g < 50) {
                     data[j + 3] = 0;
                 }
             }
@@ -517,7 +517,7 @@ function loadPandaSprite(src) {
     };
     img.onerror = () => { console.warn("Panda image load failed:", src); };
 }
-loadPandaSprite('panda_sprite_v3.png');
+loadPandaSprite('panda_sprite_v4.png');
 
 // UI 엘리먼트 가져오기
 const uiLayer = document.getElementById('uiLayer');
@@ -1370,10 +1370,15 @@ function gameLoop() {
         enemies = []; // 적군 싹 치우기 (새로운 타겟들이 떨어지도록 비워줌)
         bullets = []; // 현재 쏜 총알들도 화면에 남아 에러가 나지 않게 일괄 리셋
 
-        // 배경색을 스테이지에 맞춰서 변경 (우주 느낌의 그라데이션)
-        const hue1 = (currentStage * 18) % 360;
-        const hue2 = (currentStage * 18 + 40) % 360;
-        canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
+        // 배경색을 스테이지에 맞춰서 변경 (기본은 우주 느낌의 그라데이션)
+        if (currentStage === 12) {
+            // [NEW] 12단계 대나무 숲 테마 (녹색 그라데이션) - 팬더 가독성 극대화
+            canvas.style.background = `linear-gradient(to bottom, hsl(120, 40%, 25%), hsl(120, 60%, 10%))`;
+        } else {
+            const hue1 = (currentStage * 18) % 360;
+            const hue2 = (currentStage * 18 + 40) % 360;
+            canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
+        }
 
         // [NEW] 스테이지 진입 특수 효과음 및 앰비언스 처리
         if (currentStage === 13) {
