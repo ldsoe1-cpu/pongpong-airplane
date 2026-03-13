@@ -235,36 +235,59 @@ function playSpaceAmbiance() {
     osc.stop(now + 1);
 }
 
-// [NEW] 15단계: 폭죽 빵빵 터지는 소리 (Noise + Filter)
+// [NEW] 16단계: 폭죽 빵빵 터지는 소리 (개선된 realism - Bass Boom + Multi Crackle)
 function playFireworkSound() {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const now = audioCtx.currentTime;
 
-    // 쾅! 소리
-    const osc = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    osc.frequency.setValueAtTime(100, now);
-    osc.frequency.exponentialRampToValueAtTime(10, now + 0.1);
-    g.gain.setValueAtTime(0.3, now);
-    g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-    osc.connect(g);
-    g.connect(audioCtx.destination);
-    osc.start(); osc.stop(now + 0.2);
+    // 1. 메인 폭발음 (Deep Bass Boom)
+    const boomOsc = audioCtx.createOscillator();
+    const boomGain = audioCtx.createGain();
+    boomOsc.type = 'sine';
+    boomOsc.frequency.setValueAtTime(150, now);
+    boomOsc.frequency.exponentialRampToValueAtTime(40, now + 0.2);
+    boomGain.gain.setValueAtTime(0.6, now);
+    boomGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    boomOsc.connect(boomGain);
+    boomGain.connect(audioCtx.destination);
+    boomOsc.start(); boomOsc.stop(now + 0.4);
 
-    // 파바박! 파편 소리 (노이즈)
-    const bufSize = audioCtx.sampleRate * 0.3;
-    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.1, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-    src.connect(gain);
-    gain.connect(audioCtx.destination);
-    src.start();
+    // 2. 중간 타격음 (Mid-range punch)
+    const punchOsc = audioCtx.createOscillator();
+    const punchGain = audioCtx.createGain();
+    punchOsc.type = 'triangle';
+    punchOsc.frequency.setValueAtTime(200, now);
+    punchOsc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+    punchGain.gain.setValueAtTime(0.4, now);
+    punchGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    punchOsc.connect(punchGain);
+    punchGain.connect(audioCtx.destination);
+    punchOsc.start(); punchOsc.stop(now + 0.15);
+
+    // 3. 파바박! 파편 소리 (Layered Noise Crackle)
+    for (let i = 0; i < 3; i++) {
+        const delay = i * 0.05;
+        const bufSize = audioCtx.sampleRate * (0.2 + Math.random() * 0.2);
+        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let j = 0; j < bufSize; j++) data[j] = Math.random() * 2 - 1;
+
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'highpass';
+        filter.frequency.setValueAtTime(1000 + Math.random() * 2000, now + delay);
+
+        const gain = audioCtx.createGain();
+        gain.gain.setValueAtTime(0.1, now + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.3);
+
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+        src.start(now + delay);
+    }
 }
 
 // [NEW] 18단계: 악기 소리 (바이올린, 북, 탬버린)
@@ -423,6 +446,36 @@ Object.keys(planetSources).forEach(key => {
     };
 });
 
+// [NEW] 12단계 팬더 몸통 에셋 로드 (대표님 요청 "몸통까지 그려줘")
+const pandaSprite = { img: null };
+function loadPandaSprite(src) {
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = img.width;
+        offCanvas.height = img.height;
+        const octx = offCanvas.getContext('2d');
+        if (!octx) { pandaSprite.img = img; return; }
+        octx.drawImage(img, 0, 0);
+        try {
+            const imgData = octx.getImageData(0, 0, img.width, img.height);
+            const data = imgData.data;
+            // 흰색/매우 밝은 배경 제거 (220 이상)
+            for (let j = 0; j < data.length; j += 4) {
+                if (data[j] > 220 && data[j + 1] > 220 && data[j + 2] > 220) data[j + 3] = 0;
+            }
+            octx.putImageData(imgData, 0, 0);
+            pandaSprite.img = offCanvas;
+        } catch (e) {
+            console.warn("Panda BG removal failed:", e);
+            pandaSprite.img = img;
+        }
+    };
+    img.onerror = () => { console.warn("Panda image load failed:", src); };
+}
+loadPandaSprite('panda_sprite.png');
+
 // UI 엘리먼트 가져오기
 const uiLayer = document.getElementById('uiLayer');
 const scoreValue = document.getElementById('scoreValue');
@@ -516,13 +569,13 @@ const stageTargetPools = {
     11: ['💎', '💰', '👑', '💵'], // 11단계: 보석/골드 (땡그랑!)
     12: ['🧸', '🪆', '🎎', '🦄', '🐼'], // 12단계: 인형 (팬더곰 추가)
     13: ['☀️', '⭐', '🌟', '✨'], // 13단계: 별 (우주 테마)
-    14: ['🍕', '🍔', '🍟', '🍦', '🍗', '🐔'], // 14단계: 패스트푸드 + 치킨 추가
-    15: ['🎈', '🎐', '🎇', '🎆'], // 15단계: 풍선/폭죽 (폭죽 소리!)
+    14: ['🍕', '🍔', '🍟', '🍦', '🍗'], // 14단계: 패스트푸드 (치킨 머리 제거, 프라이드 치킨 유지)
+    15: ['🎈', '🎐', '🎇', '🎆'], // 15단계: 풍선/폭죽
     16: ['🐶', '🐱', '🐰', '🧸'], // 16단계: 세상에서 제일 귀여운 인형 (강아지, 고양이, 토끼, 곰)
-    17: ['🍌', '🍍', '🥭'], // 17단계: 트로피칼 과일
+    17: ['🍌', '🍍', '🥭', '🍓', '🍎', '🍐'], // 17단계: 트로피칼 과일 + 딸기/사과/배 추가
     18: ['🎻', '🥁', '🔔'], // 18단계: 악기 (바이올린, 북, 탬버린/종)
-    19: ['🦑', '🐙', '🦞'], // 19단계: 해산물
-    20: ['🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨'], // 20단계 (최종): 건물/집 (빌라, 오두막 등 다양하게)
+    19: ['🦑', '🐙', '🦞', '🦐', '🦀'], // 19단계: 해산물 + 새우/꽃게 추가
+    20: ['🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏙️', '🛖', '🏘️', '🌲'], // 20단계 (최종): 건물/집 (빌딩, 원두막, 마을, 나무집 상징 추가)
 };
 
 // 적 스폰 관련
@@ -787,6 +840,13 @@ class Enemy {
                 if (currentStage === 2) this.modelType = 'special_plate';
                 if (currentStage === 8) this.modelType = 'planet_img'; // 8단계 이미지 모드
 
+                // [NEW] 12단계: 팬더 이모지면 커스텀 몸통 이미지로 교체 (대표님 요청: "몸통까지 그려줘")
+                if (currentStage === 12 && this.model === '🐼') {
+                    this.modelType = 'panda_img';
+                    this.radius = 35;
+                    this.hp = 5;
+                }
+
                 this.spinAngle = Math.random() * Math.PI * 2;
                 this.spinSpeed = (Math.random() - 0.5) * 0.1;
 
@@ -954,6 +1014,11 @@ class Enemy {
                 ctx.textBaseline = 'middle';
                 ctx.fillText('🪐', 0, 0);
             }
+        } else if (this.modelType === 'panda_img' && pandaSprite.img) {
+            // [NEW] 12단계: 팬더 커스텀 몸통 이미지 렌더링
+            const img = pandaSprite.img;
+            const size = this.radius * 2.5;
+            ctx.drawImage(img, -size / 2, -size / 2, size, size);
         } else {
             // 기본 이모지 및 기타 기체 렌더링 (Stage 1, 4, 5+ 등)
             ctx.rotate(this.spinAngle);
@@ -1186,7 +1251,7 @@ function gameLoop() {
                     // [NEW] 스테이지별 전용 타격음 분기
                     if (currentStage === 11) {
                         playClinkSound(); // 보석/동전 땡그랑!
-                    } else if (currentStage === 15) {
+                    } else if (currentStage === 16) {
                         playFireworkSound(); // 폭죽 빵빵!
                     } else if (currentStage === 18) {
                         playInstrumentSound(enemy.model); // 악기별 소리 (북, 탬버린 등)
