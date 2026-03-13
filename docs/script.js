@@ -208,31 +208,66 @@ function playClinkSound() {
     osc.stop(now + 0.2);
 }
 
-// [NEW] 13단계: 우주 공간의 신비로운 웅성임 (짧은 펄스 형태)
-function playSpaceAmbiance() {
+// [NEW] 13단계: 우주 공간의 웅성임 (스타워즈 느낌의 지속적인 베이스 루프)
+let spaceAmbianceSource = null;
+let spaceAmbianceGain = null;
+
+function startSpaceAmbiance() {
     if (!audioCtx) audioCtx = new AudioContext();
     if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    // 이미 재생 중이면 중복 생성 방지
+    if (spaceAmbianceSource) return;
+
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     const filter = audioCtx.createBiquadFilter();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(50, now);
-    osc.frequency.exponentialRampToValueAtTime(100, now + 1);
+    osc.frequency.setValueAtTime(40, now); // 낮은 베이스 허밍
+
+    // LFO 느낌의 주파수 변칙 (웅웅거리는 느낌)
+    const lfo = audioCtx.createOscillator();
+    const lfoGain = audioCtx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(0.5, now); // 0.5Hz로 천천히
+    lfoGain.gain.setValueAtTime(5, now); // 5Hz 진폭
+    lfo.connect(lfoGain);
+    lfoGain.connect(osc.frequency);
+    lfo.start();
 
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(200, now);
+    filter.frequency.setValueAtTime(150, now);
 
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.1, now + 0.5);
-    gain.gain.linearRampToValueAtTime(0, now + 1);
+    gain.gain.linearRampToValueAtTime(0.15, now + 2); // 서서히 커짐
 
     osc.connect(filter);
     filter.connect(gain);
     gain.connect(audioCtx.destination);
+
     osc.start();
-    osc.stop(now + 1);
+
+    spaceAmbianceSource = osc;
+    spaceAmbianceGain = gain;
+}
+
+function stopSpaceAmbiance() {
+    if (spaceAmbianceSource && spaceAmbianceGain) {
+        const now = audioCtx.currentTime;
+        spaceAmbianceGain.gain.cancelScheduledValues(now);
+        spaceAmbianceGain.gain.setValueAtTime(spaceAmbianceGain.gain.value, now);
+        spaceAmbianceGain.gain.linearRampToValueAtTime(0, now + 1); // 1초간 페이드 아웃
+
+        const sourceToStop = spaceAmbianceSource;
+        setTimeout(() => {
+            try { sourceToStop.stop(); } catch (e) { }
+        }, 1100);
+
+        spaceAmbianceSource = null;
+        spaceAmbianceGain = null;
+    }
 }
 
 // [NEW] 16단계: 폭죽 빵빵 터지는 소리 (개선된 realism - Bass Boom + Multi Crackle)
@@ -446,7 +481,7 @@ Object.keys(planetSources).forEach(key => {
     };
 });
 
-// [NEW] 12단계 팬더 몸통 에셋 로드 (대표님 요청 "몸통까지 그려줘")
+// [NEW] 12단계 팬더 몸통 에셋 로드 (대표님 요청 "몸통까지 그려줘" + 고화질 v3 스티커 에셋 적용)
 const pandaSprite = { img: null };
 function loadPandaSprite(src) {
     const img = new Image();
@@ -461,9 +496,17 @@ function loadPandaSprite(src) {
         try {
             const imgData = octx.getImageData(0, 0, img.width, img.height);
             const data = imgData.data;
-            // 흰색/매우 밝은 배경 제거 (220 이상)
+            // [개선] v3 에셋의 초록색(Chroma Key) 배경 제거 및 테두리 보존
             for (let j = 0; j < data.length; j += 4) {
-                if (data[j] > 220 && data[j + 1] > 220 && data[j + 2] > 220) data[j + 3] = 0;
+                const r = data[j], g = data[j + 1], b = data[j + 2];
+                // 초록색 영역 (G가 R, B보다 현격히 큰 경우) 투명화
+                if (g > 150 && r < 100 && b < 100) {
+                    data[j + 3] = 0;
+                }
+                // 아주 밝은 흰색(배경 잔재) 보정
+                else if (r > 245 && g > 245 && b > 245) {
+                    data[j + 3] = 0;
+                }
             }
             octx.putImageData(imgData, 0, 0);
             pandaSprite.img = offCanvas;
@@ -474,7 +517,7 @@ function loadPandaSprite(src) {
     };
     img.onerror = () => { console.warn("Panda image load failed:", src); };
 }
-loadPandaSprite('panda_sprite.png');
+loadPandaSprite('panda_sprite_v3.png');
 
 // UI 엘리먼트 가져오기
 const uiLayer = document.getElementById('uiLayer');
@@ -1251,8 +1294,8 @@ function gameLoop() {
                     // [NEW] 스테이지별 전용 타격음 분기
                     if (currentStage === 11) {
                         playClinkSound(); // 보석/동전 땡그랑!
-                    } else if (currentStage === 16) {
-                        playFireworkSound(); // 폭죽 빵빵!
+                    } else if (currentStage === 15) {
+                        playFireworkSound(); // 폭죽 빵빵! (기존 16단계에서 이동)
                     } else if (currentStage === 18) {
                         playInstrumentSound(enemy.model); // 악기별 소리 (북, 탬버린 등)
                     }
@@ -1332,9 +1375,11 @@ function gameLoop() {
         const hue2 = (currentStage * 18 + 40) % 360;
         canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
 
-        // [NEW] 스테이지 진입 특수 효과음
+        // [NEW] 스테이지 진입 특수 효과음 및 앰비언스 처리
         if (currentStage === 13) {
-            playSpaceAmbiance(); // 우주 진입 소리
+            startSpaceAmbiance(); // 우주 진입 소리 (무한 루프 시작)
+        } else {
+            stopSpaceAmbiance(); // 우주 탈출 시 소리 멈춤
         }
 
         prevStage = currentStage;
