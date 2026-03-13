@@ -500,11 +500,11 @@ function loadPandaSprite(src) {
             for (let j = 0; j < data.length; j += 4) {
                 const r = data[j], g = data[j + 1], b = data[j + 2];
                 // 파란색 영역 (B가 R, G보다 현격히 큰 경우) 투명화
-                if (b > 150 && r < 120 && g < 120) {
+                if (b > 150 && r < 130 && g < 130) {
                     data[j + 3] = 0;
                 }
-                // 주변부 미세 보정 (아주 어두운 파란색 등)
-                else if (b > 100 && r < 50 && g < 50) {
+                // 아주 밝은 배경 잔재 보정
+                else if (r > 240 && g > 240 && b > 240) {
                     data[j + 3] = 0;
                 }
             }
@@ -1211,7 +1211,12 @@ function gameLoop() {
     }
 
     // 화면 지우기 (투명도 있는 사각형으로 덮어 잔상 이펙트 연출)
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    if (currentStage === 12) {
+        // [MOD] 12단계 숲 배경 가독성을 위해 더 투명하게 처리
+        ctx.fillStyle = 'rgba(0, 40, 0, 0.1)';
+    } else {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    }
     ctx.fillRect(-50, -50, CANVAS_WIDTH + 100, CANVAS_HEIGHT + 100); // 쉐이크 시 빈틈 안 보이게 약간 넓게 지움
 
     // 플레이어 업데이트 및 그리기
