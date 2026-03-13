@@ -190,6 +190,138 @@ function playKlaxonSound() {
     osc2.stop(currentTime + 0.2);
 }
 
+// [NEW] 11단계: 땡그랑! 보석/동전 부딪히는 소리
+function playClinkSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1500, now);
+    osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(now + 0.2);
+}
+
+// [NEW] 13단계: 우주 공간의 신비로운 웅성임 (짧은 펄스 형태)
+function playSpaceAmbiance() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    const filter = audioCtx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(50, now);
+    osc.frequency.exponentialRampToValueAtTime(100, now + 1);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(200, now);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.1, now + 0.5);
+    gain.gain.linearRampToValueAtTime(0, now + 1);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(now + 1);
+}
+
+// [NEW] 15단계: 폭죽 빵빵 터지는 소리 (Noise + Filter)
+function playFireworkSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+
+    // 쾅! 소리
+    const osc = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.exponentialRampToValueAtTime(10, now + 0.1);
+    g.gain.setValueAtTime(0.3, now);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(g);
+    g.connect(audioCtx.destination);
+    osc.start(); osc.stop(now + 0.2);
+
+    // 파바박! 파편 소리 (노이즈)
+    const bufSize = audioCtx.sampleRate * 0.3;
+    const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    src.connect(gain);
+    gain.connect(audioCtx.destination);
+    src.start();
+}
+
+// [NEW] 18단계: 악기 소리 (바이올린, 북, 탬버린)
+function playInstrumentSound(instSymbol) {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+
+    if (instSymbol === '🎻') { // 바이올린 느낌 (Sawtooth + Envelope)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(450, now + 0.1);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.linearRampToValueAtTime(0.15, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(now + 0.4);
+    } else if (instSymbol === '🥁') { // 북 (Sine pitch slide)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(now + 0.3);
+    } else if (instSymbol === '🔔') { // 탬버린/종 (High High-pass noise + Sine)
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(3000, now);
+        gain.gain.setValueAtTime(0.1, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(now + 0.1);
+
+        // 챵! 소리 (짧은 고주파 노이즈)
+        const bufSize = audioCtx.sampleRate * 0.05;
+        const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+        const data = buf.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+        const src = audioCtx.createBufferSource();
+        src.buffer = buf;
+        const noiseGain = audioCtx.createGain();
+        noiseGain.gain.setValueAtTime(0.05, now);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        src.connect(noiseGain);
+        noiseGain.connect(audioCtx.destination);
+        src.start();
+    }
+}
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
@@ -381,14 +513,14 @@ const stageTargetPools = {
     8: ['mars', 'jupiter', 'saturn', 'uranus'], // 8단계: 실제 행성 이미지
     9: ['🍎', '🍐', '🥭', '🍑', '🍋', '🍈'], // 9단계: 과일 (사과, 배, 망고, 복숭아, 레몬 등)
     10: ['⚽', '🏀', '🏈', '⚾'], // 10단계: 스포츠 공
-    11: ['💎', '💰', '👑', '💵'], // 11단계: 보석/골드
-    12: ['🧸', '🪆', '🎎', '🦄'], // 12단계: 인형 (곰돌이, 유니콘 등 예쁜 인형)
-    13: ['☀️', '⭐', '🌟', '✨'], // 13단계: 별
-    14: ['🍕', '🍔', '🍟', '🍦'], // 14단계: 패스트푸드
-    15: ['🎈', '🎐', '🎇', '🎆'], // 15단계: 풍선 (다양한 장식용 풍선/폭죽 느낌)
-    16: ['🧸', '🪆', '🎎', '🦄', '🐰', '🐱'], // 16단계: 인형 (더 다양하고 귀여운 시리즈)
+    11: ['💎', '💰', '👑', '💵'], // 11단계: 보석/골드 (땡그랑!)
+    12: ['🧸', '🪆', '🎎', '🦄', '🐼'], // 12단계: 인형 (팬더곰 추가)
+    13: ['☀️', '⭐', '🌟', '✨'], // 13단계: 별 (우주 테마)
+    14: ['🍕', '🍔', '🍟', '🍦', '🍗', '🐔'], // 14단계: 패스트푸드 + 치킨 추가
+    15: ['🎈', '🎐', '🎇', '🎆'], // 15단계: 풍선/폭죽 (폭죽 소리!)
+    16: ['🐶', '🐱', '🐰', '🧸'], // 16단계: 세상에서 제일 귀여운 인형 (강아지, 고양이, 토끼, 곰)
     17: ['🍌', '🍍', '🥭'], // 17단계: 트로피칼 과일
-    18: ['🎸', '🎹', '🎷'], // 18단계: 악기
+    18: ['🎻', '🥁', '🔔'], // 18단계: 악기 (바이올린, 북, 탬버린/종)
     19: ['🦑', '🐙', '🦞'], // 19단계: 해산물
     20: ['🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨'], // 20단계 (최종): 건물/집 (빌라, 오두막 등 다양하게)
 };
@@ -1045,14 +1177,20 @@ function gameLoop() {
                     particles.push(new Particle(bullet.x, bullet.y, bullet.color));
                 }
 
-                // 타격음 분기: 접시면 쨍그랑! 아니면 뿅! (가벼운 소리로 대체 혹은 기존은 레이저 발사음만 존재하므로 타격음 추가 가능)
+                // 타격음 분기: 대표님 커스텀 스테이지 사운드 적용
                 if (enemy.modelType === 'special_plate') {
-                    // 체력이 깎일 때마다 살짝살짝 깨지는 소리
                     playGlassSound();
-                }
-                if (enemy.modelType === 'racing_car') {
-                    // 자동차는 총알에 맞았을 때 경적 소리! (대표님 수정 요청)
+                } else if (enemy.modelType === 'racing_car') {
                     playKlaxonSound();
+                } else {
+                    // [NEW] 스테이지별 전용 타격음 분기
+                    if (currentStage === 11) {
+                        playClinkSound(); // 보석/동전 땡그랑!
+                    } else if (currentStage === 15) {
+                        playFireworkSound(); // 폭죽 빵빵!
+                    } else if (currentStage === 18) {
+                        playInstrumentSound(enemy.model); // 악기별 소리 (북, 탬버린 등)
+                    }
                 }
 
                 enemy.hp -= bullet.damage || 1;
@@ -1128,6 +1266,11 @@ function gameLoop() {
         const hue1 = (currentStage * 18) % 360;
         const hue2 = (currentStage * 18 + 40) % 360;
         canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
+
+        // [NEW] 스테이지 진입 특수 효과음
+        if (currentStage === 13) {
+            playSpaceAmbiance(); // 우주 진입 소리
+        }
 
         prevStage = currentStage;
     }
