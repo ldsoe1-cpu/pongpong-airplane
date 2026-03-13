@@ -322,9 +322,9 @@ const btnStageUp = document.getElementById('btnStageUp');
 const btnStageDown = document.getElementById('btnStageDown');
 const btnCoinCheat = document.getElementById('btnCoinCheat');
 
-// URL 파라미터에 debug=true가 있으면 테스트 패널을 보여줌 (대표님 확인용)
+// URL 파라미터에 debug=true가 있거나 로컬 환경(localhost)이면 테스트 패널을 보여줌 (대표님 확인용)
 const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('debug') === 'true') {
+if (urlParams.get('debug') === 'true' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     if (debugPanel) debugPanel.style.display = 'flex';
 }
 
