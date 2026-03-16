@@ -492,12 +492,16 @@ function loadPandaSprite(src) {
         try {
             const imgData = octx.getImageData(0, 0, img.width, img.height);
             const data = imgData.data;
-            // [개선] v4 에셋의 파란색(Chroma Key) 배경 제거
+            // [개선] v4 에셋의 파란색(Chroma Key) 배경 제거 및 경계선(안티앨리어싱) 부드럽게 처리
             for (let j = 0; j < data.length; j += 4) {
                 const r = data[j], g = data[j + 1], b = data[j + 2];
-                // 파란색 영역 (B가 R, G보다 현격히 큰 경우) 투명화
-                if (b > 150 && r < 130 && g < 130) {
-                    data[j + 3] = 0;
+                // 파란색이 다른 색상보다 얼마나 더 강한지 측정
+                const blueDiff = b - Math.max(r, g);
+                
+                if (blueDiff > 30) {
+                    // 경계선 페더링 (값이 클수록 투명하게, 작을수록 불투명하게 그라데이션)
+                    const alphaRaw = 255 - (blueDiff - 30) * 4;
+                    data[j + 3] = Math.max(0, Math.min(255, alphaRaw));
                 }
             }
             octx.putImageData(imgData, 0, 0);
