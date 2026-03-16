@@ -594,6 +594,7 @@ let coins = [];
 let currentStage = 1;
 let prevStage = 1;
 let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
+let thisStageCoins = 0; // 스테이지 내에서만 획득한 코인 (클리어 조건 판정용)
 const coinsPerStage = 10000; // 10,000 코인마다 스테이지 업 (대표님 요청 사항)
 
 // 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
@@ -612,7 +613,7 @@ const stageTargetPools = {
     12: ['🧸', '🪆', '🎎', '🦄', '🐼'], // 12단계: 인형 (팬더곰 추가)
     13: ['☀️', '⭐', '🌟', '✨'], // 13단계: 별 (우주 테마)
     14: ['🍕', '🍔', '🍟', '🍦', '🍗'], // 14단계: 패스트푸드 (치킨 머리 제거, 프라이드 치킨 유지)
-    15: ['🎈', '🎐', '🎇', '🎆'], // 15단계: 풍선/폭죽
+    15: ['🎈', '🎁', '🎉', '🎀'], // 15단계: 파티 용품 (기존 폭죽 등이 특정 기기에서 네모(깨짐)로 나오는 현상 방지)
     16: ['🐶', '🐱', '🐰', '🧸'], // 16단계: 세상에서 제일 귀여운 인형 (강아지, 고양이, 토끼, 곰)
     17: ['🍌', '🍍', '🥭', '🍓', '🍎', '🍐'], // 17단계: 트로피칼 과일 + 딸기/사과/배 추가
     18: ['🎻', '🥁', '🔔'], // 18단계: 악기 (바이올린, 북, 탬버린/종)
@@ -1149,7 +1150,9 @@ class Coin {
                     player.powerup = 'fire';
                     player.powerupTimer = 8000; // 8초 (초강력하므로 짧게)
                 } else {
-                    thisGameCoins += isDoubleCoinMode ? 2 : 1;
+                    const earned = isDoubleCoinMode ? 2 : 1;
+                    thisGameCoins += earned;
+                    thisStageCoins += earned;
                 }
                 playCoinSound();
                 this.markedForDeletion = true;
@@ -1307,8 +1310,11 @@ function gameLoop() {
                 // 적 파괴
                 if (enemy.hp <= 0) {
                     enemy.markedForDeletion = true;
-                    score += 100;
-                    thisGameCoins += isDoubleCoinMode ? 200 : 100; // 적군 처치 시 코인 확정 지급 (스테이지 업을 위해!)
+                    // 일반/파워업 적 파괴
+                    score += enemy.hp * 10;
+                    const earned = isDoubleCoinMode ? 20 : 10;
+                    thisGameCoins += earned;
+                    thisStageCoins += earned;
 
                     if (enemy.modelType === 'special_plate') {
                         // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
@@ -1357,8 +1363,16 @@ function gameLoop() {
         if (currentStage > 20) currentStage = 20;
     }
 
+    // 20단계 만점 도달 (현재 단계에서만 얻은 코인이 10,000점(코인)에 도달할 경우!)
+    // 이 조건을 스테이지 변경 체크 밖으로 빼내서 20단계 진행 도중 언제든 트리거되도록 수정
+    if (currentStage === 20 && thisStageCoins >= coinsPerStage) {
+        gameClear();
+        return;
+    }
+
     // 스테이지가 바뀌었을 때 화면 싹쓸이(클리어) 연출 및 배경색 전환 처리
     if (currentStage !== prevStage) {
+        thisStageCoins = 0; // 스테이지 넘어갈 때 현재 스테이지 코인 획득량 리셋
         stageMessageTimer = 180; // (60fps 기준 약 3초 동안 알림 텍스트 표시)
 
         // 하늘에 떠 있던 기존 적군의 타입을 바꾸거나 클리어 시각 효과 연출
@@ -1380,12 +1394,6 @@ function gameLoop() {
             startSpaceAmbiance(); // 우주 진입 소리 (무한 루프 시작)
         } else {
             stopSpaceAmbiance(); // 우주 탈출 시 소리 멈춤
-        }
-
-        if (currentStage === 20 && thisGameCoins >= 200000) {
-            // [NEW] 20단계 만점 달성 시 게임 클리어 처리 (20단계는 190000~200000 구간)
-            gameClear();
-            return;
         }
 
         prevStage = currentStage;
@@ -1482,6 +1490,7 @@ function startGame() {
     isRevived = false;
     isDoubleCoinMode = false;
     coinsAlreadyAdded = 0;
+    thisStageCoins = 0; // 새 게임 시작 시 스테이지 코인 리셋
     adReviveBtn.style.display = 'block'; // 부활 버튼 보이기
     adDoubleCoinBtn.style.display = 'inline-block';
     
@@ -1739,6 +1748,7 @@ bindTouchAndClick(btnStageUp, () => {
     window.isDeveloperStageOverridden = true;
     if (currentStage < 20) {
         currentStage++;
+        thisStageCoins = 0; // 스테이지 스킵 시 클리어 조건 리셋
         debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
     }
 });
@@ -1747,6 +1757,7 @@ bindTouchAndClick(btnStageDown, () => {
     window.isDeveloperStageOverridden = true;
     if (currentStage > 1) {
         currentStage--;
+        thisStageCoins = 0;
         debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
     }
 });
