@@ -1312,7 +1312,7 @@ function gameLoop() {
                     enemy.markedForDeletion = true;
                     // 일반/파워업 적 파괴
                     score += enemy.hp * 10;
-                    const earned = isDoubleCoinMode ? 2000 : 1000;
+                    const earned = isDoubleCoinMode ? 1000 : 500;
                     thisGameCoins += earned;
                     thisStageCoins += earned;
 
