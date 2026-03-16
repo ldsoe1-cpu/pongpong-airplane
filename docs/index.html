@@ -78,16 +78,24 @@
 
       <div class="reward-ads-container">
         <!-- 보상형 광고 모의 버튼 -->
-        <button id="adReviveBtn" class="reward-btn">📺 무료 부활하기!</button>
-        <button id="adDoubleCoinBtn" class="reward-btn">📺 코인 2배 받기 (속도 빨라짐)</button>
-        <button id="adEndDoubleCoinBtn" class="reward-btn" style="display:none; background:#ff4444; color:#fff;">📺 코인 2배 모드 종료 (정상 속도로)</button>
+        <button id="adReviveBtn" class="reward-btn">📺 정상 속도로 부활하기</button>
+        <button id="adDoubleCoinBtn" class="reward-btn">📺 코인 2배 받으며 부활하기</button>
       </div>
 
       <button id="restartBtn" class="action-btn">RESTART (Got To Lobby)</button>
     </div>
 
+    <!-- 우주 정복 성공 화면 (20단계 달성 시) -->
+    <div id="gameClearScreen" class="overlay-screen hidden">
+      <h2>🎉 MISSION CLEAR 🎉</h2>
+      <p>훌륭합니다! 20단계 우주 정복에 성공했습니다!</p>
+      <p>Total Score: <span id="clearScoreValue">0</span></p>
+      <p>Acquired Coins: 🟡 <span id="clearCoinValue">0</span></p>
+      <button id="playAgainBtn" class="action-btn" style="margin-top: 20px;">PLAY AGAIN</button>
+    </div>
+
   </div>
 
   <script src="capacitor.js"></script>
-  <script src="script.js?v=7"></script>
+  <script src="script.js?v=8"></script>
 </body>

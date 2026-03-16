@@ -520,10 +520,12 @@ const acquiredCoinValue = document.getElementById('acquiredCoinValue');
 
 const startScreen = document.getElementById('startScreen');
 const gameOverScreen = document.getElementById('gameOverScreen');
+const gameClearScreen = document.getElementById('gameClearScreen');
 const shopScreen = document.getElementById('shopScreen');
 
 const startBtn = document.getElementById('startBtn');
 const restartBtn = document.getElementById('restartBtn');
+const playAgainBtn = document.getElementById('playAgainBtn');
 const shopBtn = document.getElementById('shopBtn');
 const closeShopBtn = document.getElementById('closeShopBtn');
 
@@ -535,7 +537,8 @@ const upgMultiShotBtn = document.getElementById('upgMultiShotBtn');
 
 const adReviveBtn = document.getElementById('adReviveBtn');
 const adDoubleCoinBtn = document.getElementById('adDoubleCoinBtn');
-const adEndDoubleCoinBtn = document.getElementById('adEndDoubleCoinBtn');
+const clearScoreValue = document.getElementById('clearScoreValue');
+const clearCoinValue = document.getElementById('clearCoinValue');
 const debugPanel = document.getElementById('debugPanel');
 const debugStageInfo = document.getElementById('debugStageInfo');
 const btnStageUp = document.getElementById('btnStageUp');
@@ -1375,6 +1378,12 @@ function gameLoop() {
             stopSpaceAmbiance(); // 우주 탈출 시 소리 멈춤
         }
 
+        if (currentStage === 20 && thisGameCoins >= 200000) {
+            // [NEW] 20단계 만점 달성 시 게임 클리어 처리 (20단계는 190000~200000 구간)
+            gameClear();
+            return;
+        }
+
         prevStage = currentStage;
     }
 
@@ -1460,26 +1469,21 @@ function startGame() {
     startScreen.classList.add('hidden');
     gameOverScreen.classList.remove('active');
     gameOverScreen.classList.add('hidden');
+    gameClearScreen.classList.remove('active');
+    gameClearScreen.classList.add('hidden');
     shopScreen.classList.remove('active');
     shopScreen.classList.add('hidden');
 
     // 광고 상태 초기화 (게임이 새로 시작되면 리셋)
     isRevived = false;
+    isDoubleCoinMode = false;
     coinsAlreadyAdded = 0;
     adReviveBtn.style.display = 'block'; // 부활 버튼 보이기
+    adDoubleCoinBtn.style.display = 'inline-block';
     
-    // 코인 2배 모드 UI 갱신
-    if (isDoubleCoinMode) {
-        adDoubleCoinBtn.style.display = 'none';
-        adEndDoubleCoinBtn.style.display = 'inline-block';
-        enemySpeedMultiplier = 1.5;
-        spawnInterval = 400;
-    } else {
-        adDoubleCoinBtn.style.display = 'inline-block';
-        adEndDoubleCoinBtn.style.display = 'none';
-        enemySpeedMultiplier = 1;
-        spawnInterval = 750;
-    }
+    // 코인 2배 모드 초기화
+    enemySpeedMultiplier = 1;
+    spawnInterval = 750;
 
     // 게임 오브젝트 초기화 (화면 중앙 하단에 스폰)
     player = new Player(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 150);
@@ -1521,14 +1525,25 @@ function gameOver() {
 
     // 무제한 부활 허용 (더 이상 부활 버튼을 숨기지 않음)
     adReviveBtn.style.display = 'block';
-    
-    if (isDoubleCoinMode) {
-        adDoubleCoinBtn.style.display = 'none';
-        adEndDoubleCoinBtn.style.display = 'inline-block';
-    } else {
-        adDoubleCoinBtn.style.display = 'inline-block';
-        adEndDoubleCoinBtn.style.display = 'none';
+    adDoubleCoinBtn.style.display = 'inline-block';
+}
+
+function gameClear() {
+    isPlaying = false;
+    cancelAnimationFrame(animationId);
+    showInterstitial();
+
+    const newEarned = thisGameCoins - coinsAlreadyAdded;
+    if (newEarned > 0) {
+        totalCoins += newEarned;
+        coinsAlreadyAdded = thisGameCoins;
     }
+
+    clearScoreValue.innerText = score;
+    clearCoinValue.innerText = thisGameCoins;
+
+    gameClearScreen.classList.remove('hidden');
+    gameClearScreen.classList.add('active');
 }
 
 // ==========================================
@@ -1616,10 +1631,6 @@ bindTouchAndClick(adDoubleCoinBtn, () => {
         enemySpeedMultiplier = Math.max(1.5, enemySpeedMultiplier * 1.5);
         spawnInterval = 400;
         
-        adDoubleCoinBtn.style.display = 'none';
-        adEndDoubleCoinBtn.style.display = 'inline-block';
-        alert("코인 2배 모드 활성화! (속도가 매우 빨라집니다)");
-
         // 코인 2배 모드 선택 시 무료 부활도 동시에 진행되도록 처리
         isRevived = true;
         player.x = CANVAS_WIDTH / 2;
@@ -1639,20 +1650,13 @@ bindTouchAndClick(adDoubleCoinBtn, () => {
     });
 });
 
-bindTouchAndClick(adEndDoubleCoinBtn, () => {
-    isDoubleCoinMode = false;
-    // 스피드 정상화
-    enemySpeedMultiplier = 1;
-    spawnInterval = 750;
-    
-    adDoubleCoinBtn.style.display = 'inline-block';
-    adEndDoubleCoinBtn.style.display = 'none';
-    alert("코인 2배 모드 종료! (정상 속도와 코인으로 돌아갔습니다)");
-});
-
 bindTouchAndClick(adReviveBtn, () => {
     showRewarded(() => {
         isRevived = true;
+        isDoubleCoinMode = false;
+        // 스피드 정상화
+        enemySpeedMultiplier = 1;
+        spawnInterval = 750;
 
         // 무적 시간이나 화면 정리 후 이어하기 처리
         player.x = CANVAS_WIDTH / 2;
@@ -1683,6 +1687,13 @@ bindTouchAndClick(restartBtn, () => {
     // 로비로 전송 (Restart 대신 로비로 가는 구조로 스킨화)
     gameOverScreen.classList.remove('active');
     gameOverScreen.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    startScreen.classList.add('active');
+});
+
+bindTouchAndClick(playAgainBtn, () => {
+    gameClearScreen.classList.remove('active');
+    gameClearScreen.classList.add('hidden');
     startScreen.classList.remove('hidden');
     startScreen.classList.add('active');
 });
