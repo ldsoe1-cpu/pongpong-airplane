@@ -26,7 +26,7 @@ async function showInterstitial() {
 async function showRewarded(successCallback) {
     if (!window.Capacitor) {
         // 브라우저 환경에서는 기존처럼 모의 광고 재생
-        alert("🎥 [광고 모의 재생중...] 15초 광고를 시청했습니다!");
+        alert("🎥 [Ad Simulation...] Watched a 15-second ad!");
         successCallback();
         return;
     }
@@ -1408,7 +1408,7 @@ function gameLoop() {
 
         // "STAGE X" 글자
         ctx.font = 'bold 50px Arial';
-        ctx.fillText(`뽕뽕비행기: STAGE ${currentStage}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
+        ctx.fillText(`Space Defender: STAGE ${currentStage}`, CANVAS_WIDTH / 2, CANVAS_HEIGHT / 2 - 30);
 
         // 렌더링될 타겟 미리보기 글자
         const pool = stageTargetPools[currentStage] || stageTargetPools[20];
@@ -1442,7 +1442,7 @@ function gameLoop() {
     const bar = document.getElementById('levelProgressBar');
     if (bar) bar.style.width = progressPercent + '%';
     const progressText = document.getElementById('levelProgressText');
-    if (progressText) progressText.innerText = `다음 레벨까지: ${currentProgressCoins.toLocaleString()} / ${coinsPerStage.toLocaleString()}`;
+    if (progressText) progressText.innerText = `To Next Level: ${currentProgressCoins.toLocaleString()} / ${coinsPerStage.toLocaleString()}`;
 
     // 다음 프레임 예약
     animationId = requestAnimationFrame(gameLoop);
@@ -1749,7 +1749,7 @@ bindTouchAndClick(btnStageUp, () => {
     if (currentStage < 20) {
         currentStage++;
         thisStageCoins = 0; // 스테이지 스킵 시 클리어 조건 리셋
-        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
+        debugStageInfo.innerText = `Current Stage: LV.${currentStage}`;
     }
 });
 
@@ -1758,14 +1758,14 @@ bindTouchAndClick(btnStageDown, () => {
     if (currentStage > 1) {
         currentStage--;
         thisStageCoins = 0;
-        debugStageInfo.innerText = `현재 단계: LV.${currentStage}`;
+        debugStageInfo.innerText = `Current Stage: LV.${currentStage}`;
     }
 });
 
 bindTouchAndClick(btnCoinCheat, () => {
     thisGameCoins += 10000; // 현재 게임 코인에 추가하여 즉시 레벨업 유도
     updateShopUI();
-    alert("💸 코다리 부장의 비자금 10,000 코인 충전 완료! (즉시 스테이지 업 가능) 💸");
+    alert("💸 Cheat Activated: 10,000 Coins added! 💸");
 });
 
 // 초기 광고 초기화 실행

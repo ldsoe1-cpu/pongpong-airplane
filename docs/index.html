@@ -25,19 +25,19 @@
         <div id="levelProgressBar" style="width: 0%; height: 100%; background: #45f3ff; transition: width 0.3s;"></div>
       </div>
       <div id="levelProgressText" style="font-size: 11px; color: #45f3ff; margin-top: 4px; text-shadow: 0 0 3px #000;">
-        다음 레벨까지: 0 / 10,000</div>
+        To Next Level: 0 / 10,000</div>
     </div>
 
     <!-- 개발자 전용 디버그 패널 (스테이지 테스트용) -->
     <div id="debugPanel" style="pointer-events: auto;">
-      <h3>🛠️ 코다리 테스트 패널</h3>
-      <div id="debugStageInfo">현재 단계: LV.1</div>
+      <h3>🛠️ Dev Test Panel</h3>
+      <div id="debugStageInfo">Current Stage: LV.1</div>
       <div class="debug-controls">
-        <button id="btnStageDown" class="debug-btn">◀ 이전 단계</button>
-        <button id="btnStageUp" class="debug-btn">다음 단계 ▶</button>
+        <button id="btnStageDown" class="debug-btn">◀ Prev Stage</button>
+        <button id="btnStageUp" class="debug-btn">Next Stage ▶</button>
       </div>
       <!-- 테스트를 위해 코인 무한 충전 버튼도 추가 -->
-      <button id="btnCoinCheat" class="debug-btn" style="margin-top:5px; background:#ff4444;">💸 코인 +10000 💸</button>
+      <button id="btnCoinCheat" class="debug-btn" style="margin-top:5px; background:#ff4444;">💸 Add +10000 Coins 💸</button>
     </div>
 
     <!-- 시작 및 메인 메뉴 화면 -->
@@ -58,11 +58,11 @@
 
       <div class="shop-items">
         <div class="shop-item">
-          <span>발사 속도 ⬆️ (Cost: <span id="costFireRate">50</span>)</span>
+          <span>Fire Rate ⬆️ (Cost: <span id="costFireRate">50</span>)</span>
           <button id="upgFireRateBtn" class="upg-btn">UPGRADE</button>
         </div>
         <div class="shop-item">
-          <span>날개 총알 추가 ⬆️ (Cost: <span id="costMultiShot">200</span>)</span>
+          <span>Multi-Shot ⬆️ (Cost: <span id="costMultiShot">200</span>)</span>
           <button id="upgMultiShotBtn" class="upg-btn">UPGRADE</button>
         </div>
       </div>
@@ -78,17 +78,17 @@
 
       <div class="reward-ads-container">
         <!-- 보상형 광고 모의 버튼 -->
-        <button id="adReviveBtn" class="reward-btn">📺 정상 속도로 부활하기</button>
-        <button id="adDoubleCoinBtn" class="reward-btn">📺 코인 2배 받으며 부활하기</button>
+        <button id="adReviveBtn" class="reward-btn">📺 Revive (Normal Speed)</button>
+        <button id="adDoubleCoinBtn" class="reward-btn">📺 Revive + 2X Coins Mode</button>
       </div>
 
-      <button id="restartBtn" class="action-btn">RESTART (Got To Lobby)</button>
+      <button id="restartBtn" class="action-btn">RESTART (Go To Lobby)</button>
     </div>
 
     <!-- 우주 정복 성공 화면 (20단계 달성 시) -->
     <div id="gameClearScreen" class="overlay-screen hidden">
       <h2>🎉 MISSION CLEAR 🎉</h2>
-      <p>훌륭합니다! 20단계 우주 정복에 성공했습니다!</p>
+      <p>Excellent! You have successfully conquered 20 stages!</p>
       <p>Total Score: <span id="clearScoreValue">0</span></p>
       <p>Acquired Coins: 🟡 <span id="clearCoinValue">0</span></p>
       <button id="playAgainBtn" class="action-btn" style="margin-top: 20px;">PLAY AGAIN</button>
@@ -97,5 +97,5 @@
   </div>
 
   <script src="capacitor.js"></script>
-  <script src="script.js?v=13"></script>
+  <script src="script.js?v=14"></script>
 </body>
