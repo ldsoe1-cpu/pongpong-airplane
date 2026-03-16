@@ -635,6 +635,7 @@ let costMultiShot = 200;
 // 모의 광고 시청 여부 리미터
 let isRevived = false;
 let isDoubleCoinUsed = false;
+let coinsAlreadyAdded = 0;
 
 // ==========================================
 // 사용자 입력 (마우스 / 터치) 처리 객체
@@ -1482,6 +1483,8 @@ function startGame() {
 
     // 광고 상태 초기화 (게임이 새로 시작되면 리셋)
     isDoubleCoinUsed = false;
+    isRevived = false;
+    coinsAlreadyAdded = 0;
     adReviveBtn.style.display = 'block'; // 부활 버튼 보이기
     adDoubleCoinBtn.style.display = 'block';
 
@@ -1511,8 +1514,10 @@ function gameOver() {
     showInterstitial();
 
     // 최종 성과 계산 및 UI 활성화
-    if (!isRevived) {
-        totalCoins += thisGameCoins; // 획득 코인 계정 누적 (부활 전 1회만 누적 처리 방지)
+    const newEarned = thisGameCoins - coinsAlreadyAdded;
+    if (newEarned > 0) {
+        totalCoins += newEarned; // 획득 코인 계정 누적 (다중 부활 대응)
+        coinsAlreadyAdded = thisGameCoins;
     }
 
     finalScoreValue.innerText = score;
@@ -1521,10 +1526,8 @@ function gameOver() {
     gameOverScreen.classList.remove('hidden');
     gameOverScreen.classList.add('active');
 
-    // 이번 게임에 한 번이라도 부활했다면 더 이상 부활 불가
-    if (isRevived) {
-        adReviveBtn.style.display = 'none';
-    }
+    // 무제한 부활 허용 (더 이상 부활 버튼을 숨기지 않음)
+    adReviveBtn.style.display = 'block';
 }
 
 // ==========================================
@@ -1610,6 +1613,7 @@ bindTouchAndClick(adDoubleCoinBtn, () => {
         showRewarded(() => {
             totalCoins += thisGameCoins; // 추가로 한 번 더 누적
             thisGameCoins *= 2; // 화면 표기용
+            coinsAlreadyAdded = thisGameCoins; // 부활 후 오계산 방지
             acquiredCoinValue.innerText = thisGameCoins;
 
             isDoubleCoinUsed = true;
