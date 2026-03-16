@@ -1554,24 +1554,52 @@ function gameClear() {
 // 이벤트 리스너 등록
 // ==========================================
 
-// 마우스 및 터치 이벤트 처리
-function handlePointerMove(evt) {
+// ==========================================
+// 마우스 및 터치 이벤트 처리 (모바일 민감도 향상)
+// ==========================================
+let lastTouchX = null;
+let lastTouchY = null;
+const TOUCH_SENSITIVITY = 2.2; // 스마트폰 터치 이동 민감도 (살짝 터치해도 많이 이동)
+
+canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
     if (!isPlaying) return;
+    lastTouchX = e.touches[0].clientX;
+    lastTouchY = e.touches[0].clientY;
+}, { passive: false });
 
-    // 터치 이벤트는 touches 배열을 참초, 마우스는 그대로 사용
-    const targetX = evt.touches ? evt.touches[0].clientX : evt.clientX;
-    const targetY = evt.touches ? evt.touches[0].clientY : evt.clientY;
-
-    mouse.x = targetX;
-    mouse.y = targetY;
-}
-
-// 캔버스 자체에서 스크롤 방지를 한 번 더 보강
 canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
-    handlePointerMove(e);
+    if (!isPlaying) return;
+    const currentX = e.touches[0].clientX;
+    const currentY = e.touches[0].clientY;
+
+    if (lastTouchX !== null && lastTouchY !== null) {
+        const deltaX = currentX - lastTouchX;
+        const deltaY = currentY - lastTouchY;
+
+        mouse.x += deltaX * TOUCH_SENSITIVITY;
+        mouse.y += deltaY * TOUCH_SENSITIVITY;
+
+        // 타겟 위치가 화면 밖으로 벗어나지 않도록 보정
+        mouse.x = Math.max(0, Math.min(CANVAS_WIDTH, mouse.x));
+        mouse.y = Math.max(0, Math.min(CANVAS_HEIGHT, mouse.y));
+    }
+    lastTouchX = currentX;
+    lastTouchY = currentY;
 }, { passive: false });
-canvas.addEventListener('mousemove', handlePointerMove);
+
+canvas.addEventListener('touchend', (e) => {
+    lastTouchX = null;
+    lastTouchY = null;
+});
+
+// PC 환경 마우스는 직관적인 절대 좌표 방식 유지
+canvas.addEventListener('mousemove', (e) => {
+    if (!isPlaying) return;
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+});
 
 // 터치/클릭 혹은 롱 프레스 시 브라우저 기본 우클릭/컨텍스트 메뉴 차단
 canvas.addEventListener('contextmenu', (e) => {
