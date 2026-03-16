@@ -499,10 +499,6 @@ function loadPandaSprite(src) {
                 if (b > 150 && r < 130 && g < 130) {
                     data[j + 3] = 0;
                 }
-                // 아주 밝은 배경 잔재 보정
-                else if (r > 240 && g > 240 && b > 240) {
-                    data[j + 3] = 0;
-                }
             }
             octx.putImageData(imgData, 0, 0);
             pandaSprite.img = offCanvas;
@@ -1623,6 +1619,23 @@ bindTouchAndClick(adDoubleCoinBtn, () => {
         adDoubleCoinBtn.style.display = 'none';
         adEndDoubleCoinBtn.style.display = 'inline-block';
         alert("코인 2배 모드 활성화! (속도가 매우 빨라집니다)");
+
+        // 코인 2배 모드 선택 시 무료 부활도 동시에 진행되도록 처리
+        isRevived = true;
+        player.x = CANVAS_WIDTH / 2;
+        player.y = CANVAS_HEIGHT - 100;
+        mouse.x = player.x;
+        mouse.y = player.y;
+
+        enemies = [];
+        bullets = [];
+
+        gameOverScreen.classList.remove('active');
+        gameOverScreen.classList.add('hidden');
+
+        isPlaying = true;
+        lastSpawntime = Date.now();
+        gameLoop();
     });
 });
 
