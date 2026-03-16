@@ -208,7 +208,7 @@ function playClinkSound() {
     osc.stop(now + 0.2);
 }
 
-// [NEW] 13단계: 우주 공간의 웅성임 (스타워즈 느낌의 지속적인 베이스 루프)
+// [NEW] 13단계: 우주 공간의 웅성임 (자연스러운 톤으로 변경)
 let spaceAmbianceSource = null;
 let spaceAmbianceGain = null;
 
@@ -220,36 +220,32 @@ function startSpaceAmbiance() {
     if (spaceAmbianceSource) return;
 
     const now = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
+    
+    // 우주의 고요하고 부드러운 화이트 노이즈
+    const bufferSize = audioCtx.sampleRate * 2;
+    const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+    }
+    const noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+    noiseSource.loop = true;
+
     const filter = audioCtx.createBiquadFilter();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(40, now); // 낮은 베이스 허밍
-
-    // LFO 느낌의 주파수 변칙 (웅웅거리는 느낌)
-    const lfo = audioCtx.createOscillator();
-    const lfoGain = audioCtx.createGain();
-    lfo.type = 'sine';
-    lfo.frequency.setValueAtTime(0.5, now); // 0.5Hz로 천천히
-    lfoGain.gain.setValueAtTime(5, now); // 5Hz 진폭
-    lfo.connect(lfoGain);
-    lfoGain.connect(osc.frequency);
-    lfo.start();
-
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(150, now);
+    filter.frequency.setValueAtTime(300, now); // 매우 부드러운 필터
 
+    const gain = audioCtx.createGain();
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.15, now + 2); // 서서히 커짐
+    gain.gain.linearRampToValueAtTime(0.08, now + 2); // 아주 은은하게 커짐
 
-    osc.connect(filter);
+    noiseSource.connect(filter);
     filter.connect(gain);
     gain.connect(audioCtx.destination);
+    noiseSource.start(now);
 
-    osc.start();
-
-    spaceAmbianceSource = osc;
+    spaceAmbianceSource = noiseSource;
     spaceAmbianceGain = gain;
 }
 
@@ -543,7 +539,7 @@ const upgMultiShotBtn = document.getElementById('upgMultiShotBtn');
 
 const adReviveBtn = document.getElementById('adReviveBtn');
 const adDoubleCoinBtn = document.getElementById('adDoubleCoinBtn');
-
+const adEndDoubleCoinBtn = document.getElementById('adEndDoubleCoinBtn');
 const debugPanel = document.getElementById('debugPanel');
 const debugStageInfo = document.getElementById('debugStageInfo');
 const btnStageUp = document.getElementById('btnStageUp');
@@ -634,7 +630,7 @@ let costMultiShot = 200;
 
 // 모의 광고 시청 여부 리미터
 let isRevived = false;
-let isDoubleCoinUsed = false;
+let isDoubleCoinMode = false;
 let coinsAlreadyAdded = 0;
 
 // ==========================================
@@ -1150,7 +1146,7 @@ class Coin {
                     player.powerup = 'fire';
                     player.powerupTimer = 8000; // 8초 (초강력하므로 짧게)
                 } else {
-                    thisGameCoins += 1;
+                    thisGameCoins += isDoubleCoinMode ? 2 : 1;
                 }
                 playCoinSound();
                 this.markedForDeletion = true;
@@ -1212,12 +1208,7 @@ function gameLoop() {
     }
 
     // 화면 지우기 (투명도 있는 사각형으로 덮어 잔상 이펙트 연출)
-    if (currentStage === 12) {
-        // [MOD] 12단계 숲 배경 가독성을 위해 더 투명하게 처리
-        ctx.fillStyle = 'rgba(0, 40, 0, 0.1)';
-    } else {
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    }
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.fillRect(-50, -50, CANVAS_WIDTH + 100, CANVAS_HEIGHT + 100); // 쉐이크 시 빈틈 안 보이게 약간 넓게 지움
 
     // 플레이어 업데이트 및 그리기
@@ -1314,7 +1305,7 @@ function gameLoop() {
                 if (enemy.hp <= 0) {
                     enemy.markedForDeletion = true;
                     score += 100;
-                    thisGameCoins += 100; // 적군 처치 시 코인 100개 확정 지급 (스테이지 업을 위해!)
+                    thisGameCoins += isDoubleCoinMode ? 200 : 100; // 적군 처치 시 코인 확정 지급 (스테이지 업을 위해!)
 
                     if (enemy.modelType === 'special_plate') {
                         // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
@@ -1377,14 +1368,9 @@ function gameLoop() {
         bullets = []; // 현재 쏜 총알들도 화면에 남아 에러가 나지 않게 일괄 리셋
 
         // 배경색을 스테이지에 맞춰서 변경 (기본은 우주 느낌의 그라데이션)
-        if (currentStage === 12) {
-            // [NEW] 12단계 대나무 숲 테마 (녹색 그라데이션) - 팬더 가독성 극대화
-            canvas.style.background = `linear-gradient(to bottom, hsl(120, 40%, 25%), hsl(120, 60%, 10%))`;
-        } else {
-            const hue1 = (currentStage * 18) % 360;
-            const hue2 = (currentStage * 18 + 40) % 360;
-            canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
-        }
+        const hue1 = (currentStage * 18) % 360;
+        const hue2 = (currentStage * 18 + 40) % 360;
+        canvas.style.background = `linear-gradient(to bottom, hsl(${hue1}, 50%, 10%), hsl(${hue2}, 50%, 20%))`;
 
         // [NEW] 스테이지 진입 특수 효과음 및 앰비언스 처리
         if (currentStage === 13) {
@@ -1482,11 +1468,22 @@ function startGame() {
     shopScreen.classList.add('hidden');
 
     // 광고 상태 초기화 (게임이 새로 시작되면 리셋)
-    isDoubleCoinUsed = false;
     isRevived = false;
     coinsAlreadyAdded = 0;
     adReviveBtn.style.display = 'block'; // 부활 버튼 보이기
-    adDoubleCoinBtn.style.display = 'block';
+    
+    // 코인 2배 모드 UI 갱신
+    if (isDoubleCoinMode) {
+        adDoubleCoinBtn.style.display = 'none';
+        adEndDoubleCoinBtn.style.display = 'inline-block';
+        enemySpeedMultiplier = 1.5;
+        spawnInterval = 400;
+    } else {
+        adDoubleCoinBtn.style.display = 'inline-block';
+        adEndDoubleCoinBtn.style.display = 'none';
+        enemySpeedMultiplier = 1;
+        spawnInterval = 750;
+    }
 
     // 게임 오브젝트 초기화 (화면 중앙 하단에 스폰)
     player = new Player(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 150);
@@ -1528,6 +1525,14 @@ function gameOver() {
 
     // 무제한 부활 허용 (더 이상 부활 버튼을 숨기지 않음)
     adReviveBtn.style.display = 'block';
+    
+    if (isDoubleCoinMode) {
+        adDoubleCoinBtn.style.display = 'none';
+        adEndDoubleCoinBtn.style.display = 'inline-block';
+    } else {
+        adDoubleCoinBtn.style.display = 'inline-block';
+        adEndDoubleCoinBtn.style.display = 'none';
+    }
 }
 
 // ==========================================
@@ -1609,19 +1614,27 @@ bindTouchAndClick(upgMultiShotBtn, () => {
 
 // 광고 모의(Reward Ads) 로직 연결
 bindTouchAndClick(adDoubleCoinBtn, () => {
-    if (!isDoubleCoinUsed && thisGameCoins > 0) {
-        showRewarded(() => {
-            totalCoins += thisGameCoins; // 추가로 한 번 더 누적
-            thisGameCoins *= 2; // 화면 표기용
-            coinsAlreadyAdded = thisGameCoins; // 부활 후 오계산 방지
-            acquiredCoinValue.innerText = thisGameCoins;
+    showRewarded(() => {
+        isDoubleCoinMode = true;
+        // 즉시 스피드업 및 2배 적용
+        enemySpeedMultiplier = Math.max(1.5, enemySpeedMultiplier * 1.5);
+        spawnInterval = 400;
+        
+        adDoubleCoinBtn.style.display = 'none';
+        adEndDoubleCoinBtn.style.display = 'inline-block';
+        alert("코인 2배 모드 활성화! (속도가 매우 빨라집니다)");
+    });
+});
 
-            isDoubleCoinUsed = true;
-            adDoubleCoinBtn.style.display = 'none'; // 한 판에 한 번만
-        });
-    } else if (thisGameCoins === 0) {
-        alert("얻은 코인이 없어서 더블 혜택을 받을 수 없습니다.");
-    }
+bindTouchAndClick(adEndDoubleCoinBtn, () => {
+    isDoubleCoinMode = false;
+    // 스피드 정상화
+    enemySpeedMultiplier = 1;
+    spawnInterval = 750;
+    
+    adDoubleCoinBtn.style.display = 'inline-block';
+    adEndDoubleCoinBtn.style.display = 'none';
+    alert("코인 2배 모드 종료! (정상 속도와 코인으로 돌아갔습니다)");
 });
 
 bindTouchAndClick(adReviveBtn, () => {
