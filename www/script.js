@@ -1,9 +1,8 @@
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
-// [VERIFICATION] 버전 확인용 얼럿 (배포 확인 후 삭제 예정)
-console.log("!!! Ver 3.0-FIXED Script Loading !!!");
-alert("뽕뽕비행기 Ver 3.0-FIXED 로직이 적용되었습니다!");
+// [VERIFICATION] 버전 확인용 (HUD에 표시되므로 얼럿은 제거)
+console.log("!!! Ver 3.0.1-FIXED Script Loading (Manual Coin Collection) !!!");
 
 async function initAds() {
     if (!window.Capacitor) return;
@@ -1411,8 +1410,8 @@ function gameLoop() {
                         playGlassSound();
                     }
 
-                    // [MOD] 모든 스테이지에서 파워업 코인 드랍 (확률 및 종류 개선)
-                    if (Math.random() < 0.35) {
+                    // [MOD] 모든 스테이지에서 파워업 코인 드랍 (확률 80%로 대폭 상향 - 먹는 재미 강조)
+                    if (Math.random() < 0.80) {
                         const rand = Math.random();
                         if (rand < 0.08) coins.push(new Coin(enemy.x, enemy.y, 'fire')); // 불꽃 파워업
                         else if (rand < 0.18) coins.push(new Coin(enemy.x, enemy.y, 'red'));
@@ -1521,7 +1520,7 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 500) * 500);
     
-    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0-FIXED)`;
+    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.1-FIXED)`;
     coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [ADD] 다음 레벨까지의 진행도 표시 (대표님 확인용)
