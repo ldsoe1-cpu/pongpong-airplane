@@ -4,7 +4,7 @@ node_modules/
 package-lock.json
 
 # Builds
-www/
+# www/ (Removed to allow tracking this project's core files)
 android/app/build/
 android/.gradle/
 android/local.properties

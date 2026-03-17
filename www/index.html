@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <!-- 모바일 뷰포트 설정: 리사이징 방지, 터치 최적화 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>뽕뽕비행기: 갤럭시 디펜더</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- 게임을 그릴 캔버스 영역 -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- 게임 오버레이 UI 래퍼 (시작, 스코어, 오버 화면 등) -->
+  <div id="uiLayer" style="pointer-events: none;">
+
+    <div id="scoreBoard" style="pointer-events: auto;">
+      <span id="scoreValue">[LV.1] Score: 0</span> <br />
+      🪙 <span id="coinValue">0</span>
+      <!-- 다음 레벨까지의 진행도 표시 (대표님 확인용) -->
+      <div id="levelProgressContainer"
+        style="width: 150px; height: 8px; background: rgba(255,255,255,0.2); margin-top: 8px; border-radius: 4px; border: 1px solid #45f3ff; overflow: hidden;">
+        <div id="levelProgressBar" style="width: 0%; height: 100%; background: #45f3ff; transition: width 0.3s;"></div>
+      </div>
+      <div id="levelProgressText" style="font-size: 11px; color: #45f3ff; margin-top: 4px; text-shadow: 0 0 3px #000;">
+        To Next Level: 0 / 10,000</div>
+    </div>
+
+    <!-- 개발자 전용 디버그 패널 (스테이지 테스트용) -->
+    <div id="debugPanel" style="pointer-events: auto;">
+      <h3>🛠️ Dev Test Panel</h3>
+      <div id="debugStageInfo">Current Stage: LV.1</div>
+      <div class="debug-controls">
+        <button id="btnStageDown" class="debug-btn">◀ Prev Stage</button>
+        <button id="btnStageUp" class="debug-btn">Next Stage ▶</button>
+      </div>
+      <!-- 테스트를 위해 코인 무한 충전 버튼도 추가 -->
+      <button id="btnCoinCheat" class="debug-btn" style="margin-top:5px; background:#ff4444;">💸 Add +10000 Coins 💸</button>
+      <!-- [NEW] 로컬 스토리지 완전 초기화 및 새로고침 버튼 -->
+      <button id="btnHardReset" class="debug-btn" style="margin-top:5px; background:#555; color:#fff; border-color:#fff;">🧹 Hard Reset & Reload 🧹</button>
+    </div>
+
+    <!-- 시작 및 메인 메뉴 화면 -->
+    <div id="startScreen" class="overlay-screen active">
+      <h1>뽕뽕비행기</h1>
+      <p>Touch & Drag to Move</p>
+
+      <div class="menu-buttons">
+        <button id="startBtn" class="action-btn">TAP TO START</button>
+        <button id="shopBtn" class="action-btn secondary">UPGRADE SHOP</button>
+      </div>
+    </div>
+
+    <!-- 상점 (업그레이드) 화면 -->
+    <div id="shopScreen" class="overlay-screen hidden">
+      <h2>UPGRADE SHOP</h2>
+      <p>My Coins: 🟡 <span id="shopCoinValue">0</span></p>
+
+      <div class="shop-items">
+        <div class="shop-item">
+          <span>Fire Rate ⬆️ (Cost: <span id="costFireRate">50</span>)</span>
+          <button id="upgFireRateBtn" class="upg-btn">UPGRADE</button>
+        </div>
+        <div class="shop-item">
+          <span>Multi-Shot ⬆️ (Cost: <span id="costMultiShot">200</span>)</span>
+          <button id="upgMultiShotBtn" class="upg-btn">UPGRADE</button>
+        </div>
+        <div class="shop-item">
+          <span>Enemy Speed ⬇️ (Cost: <span id="costEnemySpeed">500</span>)</span>
+          <button id="upgEnemySpeedBtn" class="upg-btn">UPGRADE</button>
+        </div>
+        <div class="shop-item" style="border-top: 2px dashed #ff4444; margin-top: 10px; padding-top: 10px;">
+          <span>Ultimate Piercing Laser 🚀 (Cost: <span id="costLaser">5000</span>)</span>
+          <button id="upgLaserBtn" class="upg-btn">EQUIP (1 Round)</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px; text-align: center;">
+        <button id="adCoinShopBtn" class="reward-btn" style="width: 100%; font-size: 14px;">📺 Watch Ad for +50,000 Coins</button>
+        <!-- [NEW] Shop 내 데이터 초기화 버튼 -->
+        <button id="btnHardResetShop" class="debug-btn" style="width:100%; margin-top:10px; background:#333; color:#ff4444; border:1px solid #ff4444;">🧹 HARD RESET (Clear All Data) 🧹</button>
+      </div>
+
+      <button id="closeShopBtn" class="action-btn secondary" style="margin-top: 20px;">BACK TO MENU</button>
+    </div>
+
+    <!-- 게임 오버 화면 -->
+    <div id="gameOverScreen" class="overlay-screen hidden">
+      <h2>GAME OVER</h2>
+      <p>FINAL SCORE: <span id="finalScoreValue">0</span></p>
+      <p>Acquired Coins: 🟡 <span id="acquiredCoinValue">0</span></p>
+
+      <div class="reward-ads-container">
+        <!-- 보상형 광고 모의 버튼 -->
+        <button id="adReviveBtn" class="reward-btn">📺 Revive (Normal Speed)</button>
+        <button id="adDoubleCoinBtn" class="reward-btn">📺 Revive + 2X Coins Mode</button>
+      </div>
+
+      <button id="restartBtn" class="action-btn">RESTART (Go To Lobby)</button>
+    </div>
+
+    <!-- 우주 정복 성공 화면 (20단계 달성 시) -->
+    <div id="gameClearScreen" class="overlay-screen hidden">
+      <h2>🎉 MISSION CLEAR 🎉</h2>
+      <p>Excellent! You have successfully conquered 20 stages!</p>
+      <p>Total Score: <span id="clearScoreValue">0</span></p>
+      <p>Acquired Coins: 🟡 <span id="clearCoinValue">0</span></p>
+      <button id="playAgainBtn" class="action-btn" style="margin-top: 20px;">PLAY AGAIN</button>
+    </div>
+
+  </div>
+
+  <script src="capacitor.js"></script>
+  <script src="script.js?v=15"></script>
+</body>
