@@ -2,7 +2,7 @@
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
 // [VERIFICATION] 버전 확인용 (HUD에 표시되므로 얼럿은 제거)
-console.log("!!! Ver 3.0.2-FIXED Script Loading (100 Coin Economy) !!!");
+console.log("!!! Ver 3.0.3-FINAL Script Loading (Saving Enabled) !!!");
 
 async function initAds() {
     if (!window.Capacitor) return;
@@ -44,9 +44,7 @@ function saveData() {
 }
 
 function loadData() {
-    // [TEMP] 강제 데이터 청소 - 대표님 요청으로 지저분한 데이터를 싹 다 지웁니다.
-    localStorage.clear();
-    console.log("Clean slate: localStorage cleared");
+    console.log("Loading game data...");
 
     const saved = localStorage.getItem('airplaneShooterData');
     if (saved) {
@@ -1515,7 +1513,7 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.2-FIXED)`;
+    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.3-FINAL)`;
     coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [ADD] 다음 레벨까지의 진행도 표시 (대표님 확인용)
@@ -1538,8 +1536,6 @@ function gameLoop() {
 // 게임 컨트롤 함수
 // ==========================================
 function startGame() {
-    // [TEMP] 강제 초기화 코드 삽입 (데이터 정리가 끝나면 삭제 예정)
-    localStorage.clear();
 
     // 이전 게임 루프가 실행 중이라면 정지 (중복 스폰/속도 버그 방지)
     if (animationId) {
