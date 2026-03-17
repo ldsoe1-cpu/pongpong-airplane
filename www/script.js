@@ -2,7 +2,7 @@
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
 // [VERIFICATION] 버전 확인용 (HUD에 표시되므로 얼럿은 제거)
-console.log("!!! Ver 3.0.1-FIXED Script Loading (Manual Coin Collection) !!!");
+console.log("!!! Ver 3.0.2-FIXED Script Loading (100 Coin Economy) !!!");
 
 async function initAds() {
     if (!window.Capacitor) return;
@@ -1221,16 +1221,16 @@ class Coin {
                 } else if (this.type === 'fire') {
                     player.powerup = 'fire';
                     player.powerupTimer = 8000; // 8초 (초강력하므로 짧게)
-                } else {
-                    // [MOD] 코인 증가 로직 고정: 500 또는 1000만 가산 (절대 score 변수 사용 금지)
-                    const earned = isDoubleCoinMode ? 1000 : 500;
-                    
-                    thisGameCoins = Math.floor(thisGameCoins / 500) * 500 + earned;
-                    thisStageCoins = Math.floor(thisStageCoins / 500) * 500 + earned;
-                    totalCoins = Math.floor(totalCoins / 500) * 500 + earned;
-                    
-                    saveData(); // 즉시 저장
                 }
+
+                // [MOD] 모든 아이템(빨강, 파랑, 주황, 노랑) 획득 시 100코인(2배 모드 시 200) 보상으로 통일
+                const earned = isDoubleCoinMode ? 200 : 100;
+                
+                thisGameCoins = Math.floor(thisGameCoins / 100) * 100 + earned;
+                thisStageCoins = Math.floor(thisStageCoins / 100) * 100 + earned;
+                totalCoins = Math.floor(totalCoins / 100) * 100 + earned;
+                
+                saveData(); // 즉시 저장
                 playCoinSound();
                 this.markedForDeletion = true;
             }
@@ -1513,9 +1513,9 @@ function gameLoop() {
 
     // [FINAL HUD GUARD] 화면에 뿌리기 직전에 음수 및 소수점을 강제로 자릅니다.
     const finalDisplayScore = Math.max(0, Math.floor(score));
-    const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 500) * 500);
+    const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.1-FIXED)`;
+    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.2-FIXED)`;
     coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [ADD] 다음 레벨까지의 진행도 표시 (대표님 확인용)
@@ -1599,7 +1599,7 @@ function startGame() {
 
 function updateShopUI() {
     // [MOD] 상점 코인 표시 교정
-    const displayTotalCoins = Math.max(0, Math.floor(totalCoins / 500) * 500);
+    const displayTotalCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     shopCoinValue.innerText = displayTotalCoins.toLocaleString();
     costFireRateElement.innerText = costFireRate;
     costMultiShotElement.innerText = costMultiShot;
@@ -1630,7 +1630,7 @@ function gameOver() {
 
     // [MOD] 결과 화면 출력 시에도 마이너딩 및 지저분한 끝자리 강제 교정
     const finalResultsScore = Math.max(0, Math.floor(score));
-    const finalResultsCoins = Math.max(0, Math.floor(thisGameCoins / 500) * 500);
+    const finalResultsCoins = Math.max(0, Math.floor(thisGameCoins / 100) * 100);
 
     finalScoreValue.innerText = finalResultsScore.toLocaleString();
     acquiredCoinValue.innerText = finalResultsCoins.toLocaleString();
@@ -1653,7 +1653,7 @@ function gameClear() {
 
     // [MOD] 결과 화면 출력 시에도 마이너스 및 지저분한 끝자리 강제 교정
     const finalClearScore = Math.max(0, Math.floor(score));
-    const finalClearCoins = Math.max(0, Math.floor(thisGameCoins / 500) * 500);
+    const finalClearCoins = Math.max(0, Math.floor(thisGameCoins / 100) * 100);
 
     clearScoreValue.innerText = finalClearScore.toLocaleString();
     clearCoinValue.innerText = finalClearCoins.toLocaleString();
@@ -1752,7 +1752,7 @@ bindTouchAndClick(closeShopBtn, () => {
 bindTouchAndClick(upgFireRateBtn, () => {
     if (totalCoins >= costFireRate && currentFireRate > 50) {
         totalCoins -= costFireRate;
-        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
         currentFireRate -= 20; 
         costFireRate = Math.floor(costFireRate * 1.5); 
         saveData();
@@ -1763,7 +1763,7 @@ bindTouchAndClick(upgFireRateBtn, () => {
 bindTouchAndClick(upgMultiShotBtn, () => {
     if (totalCoins >= costMultiShot && currentMultiShot < 5) {
         totalCoins -= costMultiShot;
-        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
         currentMultiShot += 1; 
         costMultiShot = Math.floor(costMultiShot * 2.5);
         saveData();
@@ -1775,7 +1775,7 @@ bindTouchAndClick(upgMultiShotBtn, () => {
 bindTouchAndClick(upgEnemySpeedBtn, () => {
     if (totalCoins >= costEnemySpeed && baseEnemySpeedMultiplier > 0.5) {
         totalCoins -= costEnemySpeed;
-        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
         baseEnemySpeedMultiplier = Math.max(0.5, baseEnemySpeedMultiplier - 0.1); 
         costEnemySpeed = Math.floor(costEnemySpeed * 2.5);
         saveData();
@@ -1787,7 +1787,7 @@ bindTouchAndClick(upgEnemySpeedBtn, () => {
 bindTouchAndClick(upgLaserBtn, () => {
     if (totalCoins >= costLaser && !currentLaserActive) {
         totalCoins -= costLaser;
-        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
         currentLaserActive = true;
         saveData();
         updateShopUI();
@@ -1797,7 +1797,7 @@ bindTouchAndClick(upgLaserBtn, () => {
 // [NEW] 상점 내에서 광고 보고 50000 코인 즉시 받기
 bindTouchAndClick(adCoinShopBtn, () => {
     showRewarded(() => {
-        totalCoins = Math.floor(totalCoins / 500) * 500 + 50000;
+        totalCoins = Math.floor(totalCoins / 100) * 100 + 50000;
         saveData();
         updateShopUI();
     });
@@ -1935,9 +1935,9 @@ bindTouchAndClick(btnStageDown, () => {
 
 bindTouchAndClick(btnCoinCheat, () => {
     const cheatAmount = 10000;
-    thisGameCoins = Math.floor(thisGameCoins / 500) * 500 + cheatAmount; 
-    thisStageCoins = Math.floor(thisStageCoins / 500) * 500 + cheatAmount; 
-    totalCoins = Math.floor(totalCoins / 500) * 500 + cheatAmount;
+    thisGameCoins = Math.floor(thisGameCoins / 100) * 100 + cheatAmount; 
+    thisStageCoins = Math.floor(thisStageCoins / 100) * 100 + cheatAmount; 
+    totalCoins = Math.floor(totalCoins / 100) * 100 + cheatAmount;
     updateShopUI();
     alert("💸 Cheat Activated: 10,000 Coins added! 💸");
 });
