@@ -1396,13 +1396,8 @@ function gameLoop() {
                     score = Math.floor(score + (enemy.maxHp * 10));
                     if (score < 0) score = 0; 
 
-                    // 2. 코인 연산 (500단위 강제 교정, 독립 계산)
-                    let earned = isDoubleCoinMode ? 1000 : 500;
-                    totalCoins = Math.floor(totalCoins / 500) * 500 + earned;
-                    thisStageCoins = Math.floor(thisStageCoins / 500) * 500 + earned;
-                    thisGameCoins = Math.floor(thisGameCoins / 500) * 500 + earned;
-                    
-                    saveData(); // 즉시 저장
+                    // [MOD] 코인은 이제 드랍 아이템(노란 동전)을 먹었을 때만 올라갑니다.
+                    saveData(); // 점수 저장
 
                     if (enemy.modelType === 'special_plate') {
                         // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
