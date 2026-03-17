@@ -38,12 +38,14 @@
       </div>
       <!-- 테스트를 위해 코인 무한 충전 버튼도 추가 -->
       <button id="btnCoinCheat" class="debug-btn" style="margin-top:5px; background:#ff4444;">💸 Add +10000 Coins 💸</button>
+      <!-- [NEW] 로컬 스토리지 완전 초기화 및 새로고침 버튼 -->
+      <button id="btnHardReset" class="debug-btn" style="margin-top:5px; background:#555; color:#fff; border-color:#fff;">🧹 Hard Reset & Reload 🧹</button>
     </div>
 
     <!-- 시작 및 메인 메뉴 화면 -->
     <div id="startScreen" class="overlay-screen active">
-      <h1>뽕뽕비행기</h1>
-      <p>Touch & Drag to Move</p>
+      <h1>뽕뽕비행기: 갤럭시 디펜더</h1>
+      <p id="versionIndicator" style="color: #00ff00; font-weight: bold; margin-bottom: 20px;">[ Ver 3.0-FIXED ]</p>
 
       <div class="menu-buttons">
         <button id="startBtn" class="action-btn">TAP TO START</button>
@@ -65,6 +67,20 @@
           <span>Multi-Shot ⬆️ (Cost: <span id="costMultiShot">200</span>)</span>
           <button id="upgMultiShotBtn" class="upg-btn">UPGRADE</button>
         </div>
+        <div class="shop-item">
+          <span>Enemy Speed ⬇️ (Cost: <span id="costEnemySpeed">500</span>)</span>
+          <button id="upgEnemySpeedBtn" class="upg-btn">UPGRADE</button>
+        </div>
+        <div class="shop-item" style="border-top: 2px dashed #ff4444; margin-top: 10px; padding-top: 10px;">
+          <span>Ultimate Piercing Laser 🚀 (Cost: <span id="costLaser">5000</span>)</span>
+          <button id="upgLaserBtn" class="upg-btn">EQUIP (1 Round)</button>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px; text-align: center;">
+        <button id="adCoinShopBtn" class="reward-btn" style="width: 100%; font-size: 14px;">📺 Watch Ad for +50,000 Coins</button>
+        <!-- [NEW] Shop 내 데이터 초기화 버튼 -->
+        <button id="btnHardResetShop" class="debug-btn" style="width:100%; margin-top:10px; background:#333; color:#ff4444; border:1px solid #ff4444;">🧹 HARD RESET (Clear All Data) 🧹</button>
       </div>
 
       <button id="closeShopBtn" class="action-btn secondary" style="margin-top: 20px;">BACK TO MENU</button>
@@ -97,5 +113,5 @@
   </div>
 
   <script src="capacitor.js"></script>
-  <script src="script.js?v=14"></script>
+  <script src="script.js?v=2001"></script>
 </body>

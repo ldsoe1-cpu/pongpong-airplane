@@ -1,6 +1,10 @@
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
+// [VERIFICATION] 버전 확인용 얼럿 (배포 확인 후 삭제 예정)
+console.log("!!! Ver 3.0-FIXED Script Loading !!!");
+alert("뽕뽕비행기 Ver 3.0-FIXED 로직이 적용되었습니다!");
+
 async function initAds() {
     if (!window.Capacitor) return;
     try {
@@ -21,6 +25,57 @@ async function showInterstitial() {
         await AdMob.prepareInterstitial({ adId: 'ca-app-pub-3940256099942544/1033173712' });
         await AdMob.showInterstitial();
     } catch (e) { console.warn("Interstitial Failed:", e); }
+}
+
+// --- Persistence Logic (Save/Load) ---
+function saveData() {
+    const gameData = {
+        totalCoins: totalCoins,
+        thisStageCoins: thisStageCoins, // [FIX] 스테이지 내 진행도 저장 필수
+        currentStage: currentStage,
+        currentFireRate: currentFireRate,
+        currentMultiShot: currentMultiShot,
+        costFireRate: costFireRate,
+        costMultiShot: costMultiShot,
+        baseEnemySpeedMultiplier: typeof baseEnemySpeedMultiplier !== 'undefined' ? baseEnemySpeedMultiplier : 1,
+        costEnemySpeed: typeof costEnemySpeed !== 'undefined' ? costEnemySpeed : 500,
+        costLaser: typeof costLaser !== 'undefined' ? costLaser : 5000
+    };
+    localStorage.setItem('airplaneShooterData', JSON.stringify(gameData));
+}
+
+function loadData() {
+    // [TEMP] 강제 데이터 청소 - 대표님 요청으로 지저분한 데이터를 싹 다 지웁니다.
+    localStorage.clear();
+    console.log("Clean slate: localStorage cleared");
+
+    const saved = localStorage.getItem('airplaneShooterData');
+    if (saved) {
+        const data = JSON.parse(saved);
+        
+        // [HARDENING] 모든 수치 데이터는 정수(Integer) 및 0 이상의 양수임을 강제함
+        // 소수점이나 문자열 결합으로 인한 "501" 현상 방지
+        const sanitize = (val, def = 0) => Math.max(0, Math.floor(Number(val) || def));
+
+        totalCoins = sanitize(data.totalCoins);
+        thisStageCoins = sanitize(data.thisStageCoins);
+        currentStage = sanitize(data.currentStage, 1);
+        
+        currentFireRate = sanitize(data.currentFireRate, 180);
+        currentMultiShot = sanitize(data.currentMultiShot, 2);
+        costFireRate = sanitize(data.costFireRate, 50);
+        costMultiShot = sanitize(data.costMultiShot, 200);
+        
+        if (data.baseEnemySpeedMultiplier !== undefined) {
+            baseEnemySpeedMultiplier = Math.max(0.1, Number(data.baseEnemySpeedMultiplier) || 1);
+        }
+        if (data.costEnemySpeed !== undefined) {
+            costEnemySpeed = sanitize(data.costEnemySpeed, 500);
+        }
+        if (data.costLaser !== undefined) {
+            costLaser = sanitize(data.costLaser, 5000);
+        }
+    }
 }
 
 async function showRewarded(successCallback) {
@@ -580,6 +635,9 @@ let score = 0;
 let thisGameCoins = 0; // 이번 판에서 얻은 코인
 let totalCoins = 0;    // 내 계정에 누적된 코인 (DB 모사)
 
+// [ADD] Load saved data on startup
+loadData();
+
 let player; // 전역 플레이어 객체
 
 // 게임 오브젝트 배열 관리
@@ -594,7 +652,7 @@ let coins = [];
 let currentStage = 1;
 let prevStage = 1;
 let stageMessageTimer = 0; // 스테이지 전환 알림 텍스트 타이머
-let thisStageCoins = 0; // 스테이지 내에서만 획득한 코인 (클리어 조건 판정용)
+let thisStageCoins = 0; // [FIX] 현재 스테이지 진행도 변수 (유저 요청 명칭)
 const coinsPerStage = 10000; // 10,000 코인마다 스테이지 업 (대표님 요청 사항)
 
 // 각 스테이지별로 유저가 부숴야 할 타겟들 (이모지 기반)
@@ -631,6 +689,10 @@ let currentFireRate = 180; // 기본 발사 쿨타임 (ms)
 let currentMultiShot = 2; // 기본 총알 발사 수 (2는 양쪽 날개에서 하나씩)
 let costFireRate = 50;
 let costMultiShot = 200;
+let costEnemySpeed = 500; // [ADD] Missing variable
+let costLaser = 5000;      // [ADD] Missing variable
+let baseEnemySpeedMultiplier = 1; // [ADD] Missing variable
+let currentLaserActive = false; // [ADD] Missing variable
 
 // 모의 광고 시청 여부 리미터
 let isRevived = false;
@@ -722,7 +784,16 @@ class Player {
         const currentTime = Date.now();
         if (currentTime - this.lastShotTime > currentFireRate) {
 
-            if (this.powerup === 'red') {
+            if (currentLaserActive) {
+                // [NEW] Ultimate Piercing Laser: 가운데 두꺼운 관통 레이저 발사
+                const b = new Bullet(this.x, this.y - this.height / 2, 0, -35); // 엄청 빠름
+                b.color = '#ff00ff'; // 마젠타 색상
+                b.width = 15;
+                b.height = 60;
+                b.damage = 100; // 보스도 한방급 데미지
+                b.isPiercing = true; // [NEW] 관통 속성 추가
+                bullets.push(b);
+            } else if (this.powerup === 'red') {
                 // Quad-Shot: 전방 4발
                 const spread = 20;
                 for (let i = 0; i < 4; i++) {
@@ -775,6 +846,7 @@ class Bullet {
         this.vy = vy;
         this.color = '#00ffff';
         this.damage = 1; // 기본 데미지
+        this.isPiercing = false; // [NEW] 관통 속성 추가
         this.markedForDeletion = false;
     }
 
@@ -908,6 +980,7 @@ class Enemy {
                 this.color = colorMap[currentStage] || '#ffffff';
             }
         }
+        this.maxHp = this.hp;
         this.markedForDeletion = false;
     }
 
@@ -1150,9 +1223,14 @@ class Coin {
                     player.powerup = 'fire';
                     player.powerupTimer = 8000; // 8초 (초강력하므로 짧게)
                 } else {
-                    const earned = isDoubleCoinMode ? 2 : 1;
-                    thisGameCoins += earned;
-                    thisStageCoins += earned;
+                    // [MOD] 코인 증가 로직 고정: 500 또는 1000만 가산 (절대 score 변수 사용 금지)
+                    const earned = isDoubleCoinMode ? 1000 : 500;
+                    
+                    thisGameCoins = Math.floor(thisGameCoins / 500) * 500 + earned;
+                    thisStageCoins = Math.floor(thisStageCoins / 500) * 500 + earned;
+                    totalCoins = Math.floor(totalCoins / 500) * 500 + earned;
+                    
+                    saveData(); // 즉시 저장
                 }
                 playCoinSound();
                 this.markedForDeletion = true;
@@ -1305,16 +1383,27 @@ function gameLoop() {
                 }
 
                 enemy.hp -= bullet.damage || 1;
-                bullet.markedForDeletion = true; // 총알 소멸
+                // 레이저 등 관통 속성이 없는 총알만 타격 후 즉시 소멸
+                if (!bullet.isPiercing) {
+                    bullet.markedForDeletion = true; // 총알 소멸
+                }
 
                 // 적 파괴
                 if (enemy.hp <= 0) {
                     enemy.markedForDeletion = true;
-                    // 일반/파워업 적 파괴
-                    score += enemy.hp * 10;
-                    const earned = isDoubleCoinMode ? 1000 : 500;
-                    thisGameCoins += earned;
-                    thisStageCoins += earned;
+                    
+                    // [최종 격리 개조] 점수와 코인은 절대 섞이지 않음 (독립 계산)
+                    // 1. 점수 연산 (정수 가산, 차감 절대 금지)
+                    score = Math.floor(score + (enemy.maxHp * 10));
+                    if (score < 0) score = 0; 
+
+                    // 2. 코인 연산 (500단위 강제 교정, 독립 계산)
+                    let earned = isDoubleCoinMode ? 1000 : 500;
+                    totalCoins = Math.floor(totalCoins / 500) * 500 + earned;
+                    thisStageCoins = Math.floor(thisStageCoins / 500) * 500 + earned;
+                    thisGameCoins = Math.floor(thisGameCoins / 500) * 500 + earned;
+                    
+                    saveData(); // 즉시 저장
 
                     if (enemy.modelType === 'special_plate') {
                         // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
@@ -1354,26 +1443,24 @@ function gameLoop() {
         }
     });
 
-    // 코인 업데이트, 스테이지 승격 로직 편입
-    let localTotal = totalCoins + thisGameCoins; // 게임 도중 스테이지 계산용 임시 총합
-    // 개발자 패널 조작으로 currentStage가 강제로 바뀐 경우에는 코인량에 의한 자동 레벨업 기능을 무시하여 자유로운 테스트를 보장합니다.
+    // 코인 렌더링 호출 전 스테이지 판단
     if (!window.isDeveloperStageOverridden) {
-        // [MOD] 대표님 의견 반영: 모든 게임은 1단계부터 시작하며, 이번 판에서 얻은 코인(thisGameCoins)으로만 레벨업 판정
-        currentStage = Math.floor(thisGameCoins / coinsPerStage) + 1;
-        if (currentStage > 20) currentStage = 20;
-    }
-
-    // 20단계 만점 도달 (현재 단계에서만 얻은 코인이 10,000점(코인)에 도달할 경우!)
-    // 이 조건을 스테이지 변경 체크 밖으로 빼내서 20단계 진행 도중 언제든 트리거되도록 수정
-    if (currentStage === 20 && thisStageCoins >= coinsPerStage) {
-        gameClear();
-        return;
+        if (Math.trunc(thisStageCoins) >= coinsPerStage) {
+            if (currentStage < 20) {
+                currentStage = Math.trunc(currentStage + 1);
+                thisStageCoins = 0; // [FIX] 뺄셈 방식이 아닌 0 대입으로 초기화 (마이너스 방지)
+                saveData();
+            } else if (currentStage === 20) {
+                gameClear();
+                return;
+            }
+        }
     }
 
     // 스테이지가 바뀌었을 때 화면 싹쓸이(클리어) 연출 및 배경색 전환 처리
     if (currentStage !== prevStage) {
-        thisStageCoins = 0; // 스테이지 넘어갈 때 현재 스테이지 코인 획득량 리셋
-        stageMessageTimer = 180; // (60fps 기준 약 3초 동안 알림 텍스트 표시)
+        thisStageCoins = 0; // [FIX] 대입을 통한 0 초기화
+        stageMessageTimer = 180;
 
         // 하늘에 떠 있던 기존 적군의 타입을 바꾸거나 클리어 시각 효과 연출
         enemies.forEach(enemy => {
@@ -1430,19 +1517,24 @@ function gameLoop() {
 
     ctx.restore(); // 카메라 셰이크 복구용
 
-    // HUD 업데이트 (현재 스테이지도 함께 표시)
-    scoreValue.innerText = `[LV.${currentStage}] Score: ` + score;
-    coinValue.innerText = localTotal; // 실시간 총합 코인을 표시하여 유저가 스테이지 업 시점을 알게 함
+    // [FINAL HUD GUARD] 화면에 뿌리기 직전에 음수 및 소수점을 강제로 자릅니다.
+    const finalDisplayScore = Math.max(0, Math.floor(score));
+    const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 500) * 500);
+    
+    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0-FIXED)`;
+    coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [ADD] 다음 레벨까지의 진행도 표시 (대표님 확인용)
-    const nextLevelCoinGoal = currentStage * coinsPerStage;
-    const currentProgressCoins = thisGameCoins % coinsPerStage;
-    const progressPercent = (currentProgressCoins / coinsPerStage) * 100;
+    const nextLevelCoinGoal = coinsPerStage;
+    const currentProgressCoins = Math.max(0, Math.floor(thisStageCoins));
+    const progressPercent = (currentProgressCoins / nextLevelCoinGoal) * 100;
 
     const bar = document.getElementById('levelProgressBar');
-    if (bar) bar.style.width = progressPercent + '%';
+    if (bar) bar.style.width = Math.min(100, progressPercent) + '%';
     const progressText = document.getElementById('levelProgressText');
-    if (progressText) progressText.innerText = `To Next Level: ${currentProgressCoins.toLocaleString()} / ${coinsPerStage.toLocaleString()}`;
+    if (progressText) {
+        progressText.innerText = `To Next Level: ${currentProgressCoins.toLocaleString()} / ${nextLevelCoinGoal.toLocaleString()}`;
+    }
 
     // 다음 프레임 예약
     animationId = requestAnimationFrame(gameLoop);
@@ -1452,6 +1544,9 @@ function gameLoop() {
 // 게임 컨트롤 함수
 // ==========================================
 function startGame() {
+    // [TEMP] 강제 초기화 코드 삽입 (데이터 정리가 끝나면 삭제 예정)
+    localStorage.clear();
+
     // 이전 게임 루프가 실행 중이라면 정지 (중복 스폰/속도 버그 방지)
     if (animationId) {
         cancelAnimationFrame(animationId);
@@ -1461,6 +1556,8 @@ function startGame() {
     // 게임 시작 시 초기화
     score = 0;
     thisGameCoins = 0;
+    thisStageCoins = 0;
+    currentStage = 1;
     isPlaying = true;
 
     // 개발자 스테이지 강제 고정 플래그 초기화 (자동 레벨업 복구)
@@ -1474,7 +1571,7 @@ function startGame() {
     coins = [];
     lastSpawntime = Date.now();
     spawnInterval = 750;
-    enemySpeedMultiplier = 1;
+    enemySpeedMultiplier = baseEnemySpeedMultiplier; // 기본 배율을 가져옴
 
     // UI 로직 처리
     startScreen.classList.remove('active');
@@ -1486,7 +1583,7 @@ function startGame() {
     shopScreen.classList.remove('active');
     shopScreen.classList.add('hidden');
 
-    // 광고 상태 초기화 (게임이 새로 시작되면 리셋)
+    // 광고 상태 및 2배 모드 리셋
     isRevived = false;
     isDoubleCoinMode = false;
     coinsAlreadyAdded = 0;
@@ -1495,7 +1592,7 @@ function startGame() {
     adDoubleCoinBtn.style.display = 'inline-block';
     
     // 코인 2배 모드 초기화
-    enemySpeedMultiplier = 1;
+    enemySpeedMultiplier = baseEnemySpeedMultiplier;
     spawnInterval = 750;
 
     // 게임 오브젝트 초기화 (화면 중앙 하단에 스폰)
@@ -1507,13 +1604,27 @@ function startGame() {
 }
 
 function updateShopUI() {
-    shopCoinValue.innerText = totalCoins;
+    // [MOD] 상점 코인 표시 교정
+    const displayTotalCoins = Math.max(0, Math.floor(totalCoins / 500) * 500);
+    shopCoinValue.innerText = displayTotalCoins.toLocaleString();
     costFireRateElement.innerText = costFireRate;
     costMultiShotElement.innerText = costMultiShot;
+    costEnemySpeedElement.innerText = costEnemySpeed;
+    costLaserElement.innerText = costLaser;
 
     // 코인이 부족하거나, 최대 업그레이드 수치 도달 시 버튼 비활성화 처리
     upgFireRateBtn.disabled = totalCoins < costFireRate || currentFireRate <= 50;
     upgMultiShotBtn.disabled = totalCoins < costMultiShot || currentMultiShot >= 5;
+    upgEnemySpeedBtn.disabled = totalCoins < costEnemySpeed || baseEnemySpeedMultiplier <= 0.5; // 최대 50% 감속
+    
+    // 레이저는 단판용 (장착 여부에 따라 텍스트 변경)
+    if (currentLaserActive) {
+        upgLaserBtn.innerText = "EQUIPPED";
+        upgLaserBtn.disabled = true;
+    } else {
+        upgLaserBtn.innerText = "EQUIP (1 Round)";
+        upgLaserBtn.disabled = totalCoins < costLaser;
+    }
 }
 
 function gameOver() {
@@ -1523,18 +1634,18 @@ function gameOver() {
     // [MOD] 게임 오버 시 전면 광고(Interstitial) 시도
     showInterstitial();
 
-    // 최종 성과 계산 및 UI 활성화
-    const newEarned = thisGameCoins - coinsAlreadyAdded;
-    if (newEarned > 0) {
-        totalCoins += newEarned; // 획득 코인 계정 누적 (다중 부활 대응)
-        coinsAlreadyAdded = thisGameCoins;
-    }
+    // [MOD] 결과 화면 출력 시에도 마이너딩 및 지저분한 끝자리 강제 교정
+    const finalResultsScore = Math.max(0, Math.floor(score));
+    const finalResultsCoins = Math.max(0, Math.floor(thisGameCoins / 500) * 500);
 
-    finalScoreValue.innerText = score;
-    acquiredCoinValue.innerText = thisGameCoins;
+    finalScoreValue.innerText = finalResultsScore.toLocaleString();
+    acquiredCoinValue.innerText = finalResultsCoins.toLocaleString();
 
     gameOverScreen.classList.remove('hidden');
     gameOverScreen.classList.add('active');
+
+    // 게임오버 시 단판용 레이저 효과 제거
+    currentLaserActive = false;
 
     // 무제한 부활 허용 (더 이상 부활 버튼을 숨기지 않음)
     adReviveBtn.style.display = 'block';
@@ -1546,14 +1657,12 @@ function gameClear() {
     cancelAnimationFrame(animationId);
     showInterstitial();
 
-    const newEarned = thisGameCoins - coinsAlreadyAdded;
-    if (newEarned > 0) {
-        totalCoins += newEarned;
-        coinsAlreadyAdded = thisGameCoins;
-    }
+    // [MOD] 결과 화면 출력 시에도 마이너스 및 지저분한 끝자리 강제 교정
+    const finalClearScore = Math.max(0, Math.floor(score));
+    const finalClearCoins = Math.max(0, Math.floor(thisGameCoins / 500) * 500);
 
-    clearScoreValue.innerText = score;
-    clearCoinValue.innerText = thisGameCoins;
+    clearScoreValue.innerText = finalClearScore.toLocaleString();
+    clearCoinValue.innerText = finalClearCoins.toLocaleString();
 
     gameClearScreen.classList.remove('hidden');
     gameClearScreen.classList.add('active');
@@ -1649,8 +1758,10 @@ bindTouchAndClick(closeShopBtn, () => {
 bindTouchAndClick(upgFireRateBtn, () => {
     if (totalCoins >= costFireRate && currentFireRate > 50) {
         totalCoins -= costFireRate;
-        currentFireRate -= 20; // 발사 간격 줄어듦 (속도 증가)
-        costFireRate = Math.floor(costFireRate * 1.5); // 다음 비용 증가
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        currentFireRate -= 20; 
+        costFireRate = Math.floor(costFireRate * 1.5); 
+        saveData();
         updateShopUI();
     }
 });
@@ -1658,18 +1769,52 @@ bindTouchAndClick(upgFireRateBtn, () => {
 bindTouchAndClick(upgMultiShotBtn, () => {
     if (totalCoins >= costMultiShot && currentMultiShot < 5) {
         totalCoins -= costMultiShot;
-        currentMultiShot += 1; // 총알 줄기 증가
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        currentMultiShot += 1; 
         costMultiShot = Math.floor(costMultiShot * 2.5);
+        saveData();
         updateShopUI();
     }
+});
+
+// [NEW] 적군 속도 감소 영구 업그레이드
+bindTouchAndClick(upgEnemySpeedBtn, () => {
+    if (totalCoins >= costEnemySpeed && baseEnemySpeedMultiplier > 0.5) {
+        totalCoins -= costEnemySpeed;
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        baseEnemySpeedMultiplier = Math.max(0.5, baseEnemySpeedMultiplier - 0.1); 
+        costEnemySpeed = Math.floor(costEnemySpeed * 2.5);
+        saveData();
+        updateShopUI();
+    }
+});
+
+// [NEW] 궁극의 레이저 무기 (1판 유지)
+bindTouchAndClick(upgLaserBtn, () => {
+    if (totalCoins >= costLaser && !currentLaserActive) {
+        totalCoins -= costLaser;
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        currentLaserActive = true;
+        saveData();
+        updateShopUI();
+    }
+});
+
+// [NEW] 상점 내에서 광고 보고 50000 코인 즉시 받기
+bindTouchAndClick(adCoinShopBtn, () => {
+    showRewarded(() => {
+        totalCoins = Math.floor(totalCoins / 500) * 500 + 50000;
+        saveData();
+        updateShopUI();
+    });
 });
 
 // 광고 모의(Reward Ads) 로직 연결
 bindTouchAndClick(adDoubleCoinBtn, () => {
     showRewarded(() => {
         isDoubleCoinMode = true;
-        // 즉시 스피드업 및 2배 적용
-        enemySpeedMultiplier = Math.max(1.5, enemySpeedMultiplier * 1.5);
+        // 즉시 스피드업 및 2배 적용 (기본 배율 기준)
+        enemySpeedMultiplier = Math.max(1.5, baseEnemySpeedMultiplier * 1.5);
         spawnInterval = 400;
         
         // 코인 2배 모드 선택 시 무료 부활도 동시에 진행되도록 처리
@@ -1696,7 +1841,7 @@ bindTouchAndClick(adReviveBtn, () => {
         isRevived = true;
         isDoubleCoinMode = false;
         // 스피드 정상화
-        enemySpeedMultiplier = 1;
+        enemySpeedMultiplier = baseEnemySpeedMultiplier;
         spawnInterval = 750;
 
         // 무적 시간이나 화면 정리 후 이어하기 처리
@@ -1713,30 +1858,62 @@ bindTouchAndClick(adReviveBtn, () => {
         gameOverScreen.classList.add('hidden');
 
         isPlaying = true;
-        lastSpawntime = Date.now(); // 스폰 타이머만 리셋
+        lastSpawntime = Date.now(); 
+        thisStageCoins = 0; // 부활 시 진행도 0으로 안전하게 대입
         gameLoop();
     });
 });
 
 // 버튼 이벤트 - 터치 및 클릭 허용 (이벤트 전파 방지 옵션 추가)
 bindTouchAndClick(startBtn, () => {
+    thisStageCoins = 0; // 시작 시 리셋
     startGame();
 });
 
 bindTouchAndClick(restartBtn, () => {
-    isRevived = false;
-    // 로비로 전송 (Restart 대신 로비로 가는 구조로 스킨화)
-    gameOverScreen.classList.remove('active');
-    gameOverScreen.classList.add('hidden');
-    startScreen.classList.remove('hidden');
-    startScreen.classList.add('active');
+    if (confirm("처음부터 다시 시작하시겠습니까? (스테이지 및 코인 초기화)")) {
+        isRevived = false;
+        // 데이터 완전 초기화
+        totalCoins = 0;
+        currentStage = 1;
+        currentFireRate = 180;
+        currentMultiShot = 2;
+        costFireRate = 50;
+        costMultiShot = 200;
+        baseEnemySpeedMultiplier = 1;
+        costEnemySpeed = 500;
+        costLaser = 5000;
+        saveData();
+
+        // 로비로 전송
+        gameOverScreen.classList.remove('active');
+        gameOverScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+        startScreen.classList.add('active');
+        updateShopUI();
+    }
 });
 
 bindTouchAndClick(playAgainBtn, () => {
-    gameClearScreen.classList.remove('active');
-    gameClearScreen.classList.add('hidden');
-    startScreen.classList.remove('hidden');
-    startScreen.classList.add('active');
+    if (confirm("처음부터 다시 시작하시겠습니까? (스테이지 및 코인 초기화)")) {
+        // 데이터 완전 초기화
+        totalCoins = 0;
+        currentStage = 1;
+        currentFireRate = 180;
+        currentMultiShot = 2;
+        costFireRate = 50;
+        costMultiShot = 200;
+        baseEnemySpeedMultiplier = 1;
+        costEnemySpeed = 500;
+        costLaser = 5000;
+        saveData();
+
+        gameClearScreen.classList.remove('active');
+        gameClearScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+        startScreen.classList.add('active');
+        updateShopUI();
+    }
 });
 
 // ==========================================
@@ -1763,10 +1940,31 @@ bindTouchAndClick(btnStageDown, () => {
 });
 
 bindTouchAndClick(btnCoinCheat, () => {
-    thisGameCoins += 10000; // 현재 게임 코인에 추가하여 즉시 레벨업 유도
+    const cheatAmount = 10000;
+    thisGameCoins = Math.floor(thisGameCoins / 500) * 500 + cheatAmount; 
+    thisStageCoins = Math.floor(thisStageCoins / 500) * 500 + cheatAmount; 
+    totalCoins = Math.floor(totalCoins / 500) * 500 + cheatAmount;
     updateShopUI();
     alert("💸 Cheat Activated: 10,000 Coins added! 💸");
 });
+
+bindTouchAndClick(btnHardReset, () => {
+    if (confirm("처음부터 다시 시작하시겠습니까? (스테이지 및 코인 초기화)")) {
+        localStorage.clear();
+        location.reload();
+    }
+});
+
+// [NEW] 상점 내 데이터 완전 초기화 버튼 로직
+const btnHardResetShop = document.getElementById('btnHardResetShop');
+if (btnHardResetShop) {
+    bindTouchAndClick(btnHardResetShop, () => {
+        if (confirm("⚠️ 경고: 모든 게임 데이터(코인, 업그레이드, 스테이지)가 영구적으로 삭제됩니다. 계속하시겠습니까?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    });
+}
 
 // 초기 광고 초기화 실행
 initAds();
