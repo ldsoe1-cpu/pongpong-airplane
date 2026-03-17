@@ -1754,9 +1754,9 @@ bindTouchAndClick(closeShopBtn, () => {
 bindTouchAndClick(upgFireRateBtn, () => {
     if (totalCoins >= costFireRate && currentFireRate > 50) {
         totalCoins -= costFireRate;
-        totalCoins = Math.max(0, totalCoins);
-        currentFireRate -= 20; // 발사 간격 줄어듦 (속도 증가)
-        costFireRate = Math.floor(costFireRate * 1.5); // 다음 비용 증가
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        currentFireRate -= 20; 
+        costFireRate = Math.floor(costFireRate * 1.5); 
         saveData();
         updateShopUI();
     }
@@ -1765,8 +1765,8 @@ bindTouchAndClick(upgFireRateBtn, () => {
 bindTouchAndClick(upgMultiShotBtn, () => {
     if (totalCoins >= costMultiShot && currentMultiShot < 5) {
         totalCoins -= costMultiShot;
-        totalCoins = Math.max(0, totalCoins);
-        currentMultiShot += 1; // 총알 줄기 증가
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        currentMultiShot += 1; 
         costMultiShot = Math.floor(costMultiShot * 2.5);
         saveData();
         updateShopUI();
@@ -1777,8 +1777,8 @@ bindTouchAndClick(upgMultiShotBtn, () => {
 bindTouchAndClick(upgEnemySpeedBtn, () => {
     if (totalCoins >= costEnemySpeed && baseEnemySpeedMultiplier > 0.5) {
         totalCoins -= costEnemySpeed;
-        totalCoins = Math.max(0, totalCoins);
-        baseEnemySpeedMultiplier = Math.max(0.5, baseEnemySpeedMultiplier - 0.1); // 10%씩 느려지게
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
+        baseEnemySpeedMultiplier = Math.max(0.5, baseEnemySpeedMultiplier - 0.1); 
         costEnemySpeed = Math.floor(costEnemySpeed * 2.5);
         saveData();
         updateShopUI();
@@ -1789,7 +1789,7 @@ bindTouchAndClick(upgEnemySpeedBtn, () => {
 bindTouchAndClick(upgLaserBtn, () => {
     if (totalCoins >= costLaser && !currentLaserActive) {
         totalCoins -= costLaser;
-        totalCoins = Math.max(0, totalCoins);
+        totalCoins = Math.floor(totalCoins / 500) * 500; // [FIX] 잔액 강제 정규화
         currentLaserActive = true;
         saveData();
         updateShopUI();
