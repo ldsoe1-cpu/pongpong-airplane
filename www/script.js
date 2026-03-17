@@ -1,8 +1,8 @@
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
-// [VERIFICATION] 버전 확인용 (HUD에 표시되므로 얼럿은 제거)
-console.log("!!! Ver 3.0.4-MAGNET Script Loading (Magnet & 2X Ad) !!!");
+// [VERIFICATION] 버전 확인용
+console.log("!!! Ver 3.0.5-FINAL Script Loading (HUD & Evolution) !!!");
 
 async function initAds() {
     if (!window.Capacitor) return;
@@ -1585,7 +1585,7 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.4-MAGNET)`;
+    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.5-FINAL)`;
     coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [NEW] 2배 코인 타이머 자막 표시 및 자석 비용 갱신
@@ -1599,7 +1599,21 @@ function gameLoop() {
     } else {
         doubleCoinTimerDisplay.style.display = 'none';
     }
-    magnetCostDisplay.innerText = costMagnetRange.toLocaleString();
+    if (magnetCostDisplay) magnetCostDisplay.innerText = costMagnetRange.toLocaleString();
+
+    // [NEW] HUD 퀵 업그레이드 버튼 갱신 (Safety Guard 추가)
+    if (btnQuickFireRate) {
+        btnQuickFireRate.innerText = `🔫 SPD [LV.${fireRateLevel}] ${costFireRate.toLocaleString()}`;
+        btnQuickFireRate.disabled = totalCoins < costFireRate;
+    }
+    if (btnQuickMultiShot) {
+        btnQuickMultiShot.innerText = `🌟 MLT [LV.${multiShotLevel}] ${costMultiShot.toLocaleString()}`;
+        btnQuickMultiShot.disabled = totalCoins < costMultiShot || multiShotLevel >= 3;
+    }
+    if (btnQuickEnemySlow) {
+        btnQuickEnemySlow.innerText = `🐢 SLW [LV.${enemySlowLevel}] ${costEnemySlow.toLocaleString()}`;
+        btnQuickEnemySlow.disabled = totalCoins < costEnemySlow || enemySlowLevel >= 8;
+    }
 
     // [ADD] 다음 레벨까지의 진행도 표시 (대표님 확인용)
     const nextLevelCoinGoal = coinsPerStage;
@@ -1809,6 +1823,7 @@ canvas.addEventListener('contextmenu', (e) => {
 
 // 버튼 이벤트 - 터치 및 클릭 허용 (이벤트 전파 방지 옵션 추가)
 function bindTouchAndClick(element, handler) {
+    if (!element) return; // [SAFETY] 요소가 없으면 무시 (크래시 방지)
     element.addEventListener('click', (e) => {
         // UI 클릭이 캔버스 조종으로 새어나가지 않게 보호
         e.stopPropagation();
