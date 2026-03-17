@@ -2,7 +2,7 @@
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
 // [VERIFICATION] 버전 확인용 (HUD에 표시되므로 얼럿은 제거)
-console.log("!!! Ver 3.0.3-FINAL Script Loading (Saving Enabled) !!!");
+console.log("!!! Ver 3.0.4-MAGNET Script Loading (Magnet & 2X Ad) !!!");
 
 async function initAds() {
     if (!window.Capacitor) return;
@@ -38,7 +38,9 @@ function saveData() {
         costMultiShot: costMultiShot,
         baseEnemySpeedMultiplier: typeof baseEnemySpeedMultiplier !== 'undefined' ? baseEnemySpeedMultiplier : 1,
         costEnemySpeed: typeof costEnemySpeed !== 'undefined' ? costEnemySpeed : 500,
-        costLaser: typeof costLaser !== 'undefined' ? costLaser : 5000
+        costLaser: typeof costLaser !== 'undefined' ? costLaser : 5000,
+        magnetRange: typeof magnetRange !== 'undefined' ? magnetRange : 100,
+        costMagnetRange: typeof costMagnetRange !== 'undefined' ? costMagnetRange : 1000
     };
     localStorage.setItem('airplaneShooterData', JSON.stringify(gameData));
 }
@@ -71,6 +73,12 @@ function loadData() {
         }
         if (data.costLaser !== undefined) {
             costLaser = sanitize(data.costLaser, 5000);
+        }
+        if (data.magnetRange !== undefined) {
+            magnetRange = sanitize(data.magnetRange, 100);
+        }
+        if (data.costMagnetRange !== undefined) {
+            costMagnetRange = sanitize(data.costMagnetRange, 1000);
         }
     }
 }
@@ -141,6 +149,23 @@ function playCoinSound() {
 
     osc.start();
     osc.stop(audioCtx.currentTime + 0.3);
+}
+
+// [NEW] 자석 강화 사운드 (지잉- 하는 전자음)
+function playMagnetSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2);
+    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
 }
 
 // 실제 유리 파손음을 Web Audio API로 극도로 정교하게 합성 (Impact + Crackling + Tinkling)
@@ -601,6 +626,12 @@ const btnStageUp = document.getElementById('btnStageUp');
 const btnStageDown = document.getElementById('btnStageDown');
 const btnCoinCheat = document.getElementById('btnCoinCheat');
 
+// [NEW] 자석 및 2배 광고 UI 요소
+const btnMagnetUpg = document.getElementById('btnMagnetUpg');
+const magnetCostDisplay = document.getElementById('magnetCost');
+const doubleCoinTimerDisplay = document.getElementById('doubleCoinTimerDisplay');
+const adDoubleCoinTimedBtn = document.getElementById('adDoubleCoinTimedBtn');
+
 // URL 파라미터에 debug=true가 있거나 로컬 환경(localhost)이면 테스트 패널을 보여줌 (대표님 확인용)
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('debug') === 'true' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -694,7 +725,12 @@ let currentLaserActive = false; // [ADD] Missing variable
 // 모의 광고 시청 여부 리미터
 let isRevived = false;
 let isDoubleCoinMode = false;
+let doubleCoinTimer = 0; // 5분 = 300초 (초 단위 관리)
 let coinsAlreadyAdded = 0;
+
+// [NEW] 자석 시스템 스탯
+let magnetRange = 100;
+let costMagnetRange = 1000;
 
 // ==========================================
 // 사용자 입력 (마우스 / 터치) 처리 객체
@@ -1202,12 +1238,21 @@ class Coin {
     }
 
     update() {
-        this.y += this.speedY;
-
         if (player) {
-            const dx = this.x - player.x;
-            const dy = this.y - player.y;
+            const dx = player.x - this.x;
+            const dy = player.y - this.y;
             const distance = Math.hypot(dx, dy);
+
+            // [NEW] 자석 시스템: 범위 내에 있으면 플레이어에게 끌려옴
+            if (distance < magnetRange) {
+                // 초당 300px (1프레임당 약 5px) 속도로 흡수
+                const angle = Math.atan2(dy, dx);
+                this.x += Math.cos(angle) * 5;
+                this.y += Math.sin(angle) * 5;
+            } else {
+                // 범위 밖이면 그냥 아래로 내려옴
+                this.y += this.speedY;
+            }
 
             if (distance < this.radius + player.width / 2) {
                 if (this.type === 'red') {
@@ -1222,7 +1267,8 @@ class Coin {
                 }
 
                 // [MOD] 모든 아이템(빨강, 파랑, 주황, 노랑) 획득 시 100코인(2배 모드 시 200) 보상으로 통일
-                const earned = isDoubleCoinMode ? 200 : 100;
+                // doubleCoinTimer가 작동 중이면 200원, 아니면 100원
+                const earned = doubleCoinTimer > 0 ? 200 : 100;
                 
                 thisGameCoins = Math.floor(thisGameCoins / 100) * 100 + earned;
                 thisStageCoins = Math.floor(thisStageCoins / 100) * 100 + earned;
@@ -1513,8 +1559,21 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.3-FINAL)`;
+    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.4-MAGNET)`;
     coinValue.innerText = finalDisplayCoins.toLocaleString();
+
+    // [NEW] 2배 코인 타이머 자막 표시 및 자석 비용 갱신
+    if (doubleCoinTimer > 0) {
+        // 1프레임당 0.016초씩 차감 (약 60fps)
+        doubleCoinTimer -= 0.016; 
+        doubleCoinTimerDisplay.style.display = 'inline';
+        const mins = Math.floor(doubleCoinTimer / 60);
+        const secs = Math.floor(doubleCoinTimer % 60);
+        doubleCoinTimerDisplay.innerText = `⏳ 2X: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    } else {
+        doubleCoinTimerDisplay.style.display = 'none';
+    }
+    magnetCostDisplay.innerText = costMagnetRange.toLocaleString();
 
     // [ADD] 다음 레벨까지의 진행도 표시 (대표님 확인용)
     const nextLevelCoinGoal = coinsPerStage;
@@ -1795,6 +1854,30 @@ bindTouchAndClick(adCoinShopBtn, () => {
     showRewarded(() => {
         totalCoins = Math.floor(totalCoins / 100) * 100 + 50000;
         saveData();
+        updateShopUI();
+    });
+});
+
+// [NEW] 자석 강화 리스너 (HUD에서 바로 강화)
+bindTouchAndClick(btnMagnetUpg, () => {
+    if (totalCoins >= costMagnetRange) {
+        totalCoins -= costMagnetRange;
+        totalCoins = Math.floor(totalCoins / 100) * 100;
+        magnetRange += 20;
+        costMagnetRange = Math.floor(costMagnetRange * 1.8); // 비용 1.8배 증가
+        saveData();
+        playMagnetSound();
+        updateShopUI();
+    } else {
+        alert("🟡 Not enough coins for Magnet upgrade!");
+    }
+});
+
+// [NEW] 5분 코인 2배 광고 리스너 (상점에서 시청)
+bindTouchAndClick(adDoubleCoinTimedBtn, () => {
+    showRewarded(() => {
+        doubleCoinTimer = 300; // 5분
+        alert("🚀 5-Minute 2X Coin Mode Activated!");
         updateShopUI();
     });
 });

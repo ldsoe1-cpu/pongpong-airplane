@@ -19,6 +19,13 @@
     <div id="scoreBoard" style="pointer-events: auto;">
       <span id="scoreValue">[LV.1] Score: 0</span> <br />
       🪙 <span id="coinValue">0</span>
+      <!-- [NEW] 자석 강화 버튼 및 2배 타이머 표시 -->
+      <div id="quickUpgContainer" style="margin-top: 5px; display: flex; align-items: center; gap: 5px;">
+        <button id="btnMagnetUpg" style="background: #45f3ff; color: #000; border: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer;">
+          🧲 Magnet +20 (<span id="magnetCost">1000</span>)
+        </button>
+        <span id="doubleCoinTimerDisplay" style="color: #ff9900; font-size: 11px; font-weight: bold; display: none;">⏳ 2X: 05:00</span>
+      </div>
       <!-- 다음 레벨까지의 진행도 표시 (대표님 확인용) -->
       <div id="levelProgressContainer"
         style="width: 150px; height: 8px; background: rgba(255,255,255,0.2); margin-top: 8px; border-radius: 4px; border: 1px solid #45f3ff; overflow: hidden;">
@@ -59,6 +66,11 @@
       <p>My Coins: 🟡 <span id="shopCoinValue">0</span></p>
 
       <div class="shop-items">
+        <!-- [NEW] 5분 코인 2배 광고 버튼 (좌우 비대칭 방지 위해 상단 배치) -->
+        <button id="adDoubleCoinTimedBtn" class="reward-btn" style="width: 100%; margin-bottom: 15px; background: #ff9900; color: #fff; font-weight: bold;">
+          📺 Watch Ad for 5-Min 2X Coins!
+        </button>
+
         <div class="shop-item">
           <span>Fire Rate ⬆️ (Cost: <span id="costFireRate">50</span>)</span>
           <button id="upgFireRateBtn" class="upg-btn">UPGRADE</button>
