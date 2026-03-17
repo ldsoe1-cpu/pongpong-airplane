@@ -65,9 +65,9 @@ function loadData() {
         currentStage = sanitize(data.currentStage, 1);
         
         currentFireRate = sanitize(data.currentFireRate, 180);
-        currentMultiShot = sanitize(data.currentMultiShot, 2);
-        costFireRate = sanitize(data.costFireRate, 50);
-        costMultiShot = sanitize(data.costMultiShot, 200);
+        currentMultiShot = sanitize(data.currentMultiShot, 1); // 3.0.5 기본값 1
+        costFireRate = sanitize(data.costFireRate, 1000); // 3.0.5 기본값 1000
+        costMultiShot = sanitize(data.costMultiShot, 1000);
         
         if (data.baseEnemySpeedMultiplier !== undefined) {
             baseEnemySpeedMultiplier = Math.max(0.1, Number(data.baseEnemySpeedMultiplier) || 1);
@@ -618,6 +618,7 @@ const shopScreen = document.getElementById('shopScreen');
 const startBtn = document.getElementById('startBtn');
 const restartBtn = document.getElementById('restartBtn');
 const playAgainBtn = document.getElementById('playAgainBtn');
+console.log("Buttons found:", {startBtn:!!startBtn, restartBtn:!!restartBtn, playAgainBtn:!!playAgainBtn});
 const shopBtn = document.getElementById('shopBtn');
 const closeShopBtn = document.getElementById('closeShopBtn');
 
@@ -678,9 +679,6 @@ let animationId;
 let score = 0;
 let thisGameCoins = 0; // 이번 판에서 얻은 코인
 let totalCoins = 0;    // 내 계정에 누적된 코인 (DB 모사)
-
-// [ADD] Load saved data on startup
-loadData();
 
 let player; // 전역 플레이어 객체
 
@@ -754,6 +752,9 @@ let coinsAlreadyAdded = 0;
 // [NEW] 자석 시스템 스탯
 let magnetRange = 100;
 let costMagnetRange = 1000;
+
+// [ADD] Load saved data on startup (모든 글로벌 변수 선언 후 실행)
+loadData();
 
 // ==========================================
 // 사용자 입력 (마우스 / 터치) 처리 객체
@@ -1585,8 +1586,8 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.5-FINAL)`;
-    coinValue.innerText = finalDisplayCoins.toLocaleString();
+    if (scoreValue) scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.5-FINAL)`;
+    if (coinValue) coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [NEW] 2배 코인 타이머 자막 표시 및 자석 비용 갱신
     if (doubleCoinTimer > 0) {
