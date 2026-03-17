@@ -82,6 +82,33 @@ body {
   pointer-events: none;
 }
 
+/* [NEW] HUD 퀵 업그레이드 버튼 스타일 */
+.quick-upg-btn {
+  background: rgba(69, 243, 255, 0.2);
+  color: #45f3ff;
+  border: 1px solid #45f3ff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-shadow: 0 0 5px #45f3ff;
+}
+
+.quick-upg-btn:disabled {
+  background: rgba(128, 128, 128, 0.1);
+  color: #888;
+  border-color: #444;
+  text-shadow: none;
+  cursor: not-allowed;
+}
+
+.quick-upg-btn:active:not(:disabled) {
+  background: #45f3ff;
+  color: #000;
+}
+
 .overlay-screen.active {
   opacity: 1;
   pointer-events: auto;

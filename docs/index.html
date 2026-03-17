@@ -19,6 +19,13 @@
     <div id="scoreBoard" style="pointer-events: auto;">
       <span id="scoreValue">[LV.1] Score: 0</span> <br />
       🪙 <span id="coinValue">0</span>
+      <!-- [NEW] HUD 퀵 업그레이드 바 -->
+      <div id="quickUpgBar" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px; pointer-events: auto;">
+        <button id="btnQuickFireRate" class="quick-upg-btn">🔫 SPD [LV.1] 1,000</button>
+        <button id="btnQuickMultiShot" class="quick-upg-btn">🌟 MLT [LV.1] 1,000</button>
+        <button id="btnQuickEnemySlow" class="quick-upg-btn">🐢 SLW [LV.1] 1,000</button>
+      </div>
+
       <!-- [NEW] 자석 강화 버튼 및 2배 타이머 표시 -->
       <div id="quickUpgContainer" style="margin-top: 5px; display: flex; align-items: center; gap: 5px;">
         <button id="btnMagnetUpg" style="background: #45f3ff; color: #000; border: none; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; cursor: pointer;">

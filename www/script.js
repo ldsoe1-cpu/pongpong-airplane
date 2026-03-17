@@ -35,12 +35,16 @@ function saveData() {
         currentFireRate: currentFireRate,
         currentMultiShot: currentMultiShot,
         costFireRate: costFireRate,
-        costMultiShot: costMultiShot,
-        baseEnemySpeedMultiplier: typeof baseEnemySpeedMultiplier !== 'undefined' ? baseEnemySpeedMultiplier : 1,
-        costEnemySpeed: typeof costEnemySpeed !== 'undefined' ? costEnemySpeed : 500,
+        costEnemySpeed: typeof costEnemySpeed !== 'undefined' ? costEnemySpeed : 1000,
         costLaser: typeof costLaser !== 'undefined' ? costLaser : 5000,
         magnetRange: typeof magnetRange !== 'undefined' ? magnetRange : 100,
-        costMagnetRange: typeof costMagnetRange !== 'undefined' ? costMagnetRange : 1000
+        costMagnetRange: typeof costMagnetRange !== 'undefined' ? costMagnetRange : 1000,
+        fireRateLevel: typeof fireRateLevel !== 'undefined' ? fireRateLevel : 1,
+        multiShotLevel: typeof multiShotLevel !== 'undefined' ? multiShotLevel : 1,
+        enemySlowLevel: typeof enemySlowLevel !== 'undefined' ? enemySlowLevel : 1,
+        costFireRate: typeof costFireRate !== 'undefined' ? costFireRate : 1000,
+        costMultiShot: typeof costMultiShot !== 'undefined' ? costMultiShot : 1000,
+        costEnemySlow: typeof costEnemySlow !== 'undefined' ? costEnemySlow : 1000
     };
     localStorage.setItem('airplaneShooterData', JSON.stringify(gameData));
 }
@@ -80,6 +84,13 @@ function loadData() {
         if (data.costMagnetRange !== undefined) {
             costMagnetRange = sanitize(data.costMagnetRange, 1000);
         }
+        // [NEW] 레벨 및 진화용 데이터 로드
+        fireRateLevel = sanitize(data.fireRateLevel, 1);
+        multiShotLevel = sanitize(data.multiShotLevel, 1);
+        enemySlowLevel = sanitize(data.enemySlowLevel, 1);
+        costFireRate = sanitize(data.costFireRate, 1000);
+        costMultiShot = sanitize(data.costMultiShot, 1000);
+        costEnemySlow = sanitize(data.costEnemySlow, 1000);
     }
 }
 
@@ -626,6 +637,11 @@ const btnStageUp = document.getElementById('btnStageUp');
 const btnStageDown = document.getElementById('btnStageDown');
 const btnCoinCheat = document.getElementById('btnCoinCheat');
 
+// [NEW] HUD 퀵 업그레이드 버튼
+const btnQuickFireRate = document.getElementById('btnQuickFireRate');
+const btnQuickMultiShot = document.getElementById('btnQuickMultiShot');
+const btnQuickEnemySlow = document.getElementById('btnQuickEnemySlow');
+
 // [NEW] 자석 및 2배 광고 UI 요소
 const btnMagnetUpg = document.getElementById('btnMagnetUpg');
 const magnetCostDisplay = document.getElementById('magnetCost');
@@ -712,15 +728,22 @@ let lastSpawntime = 0;
 let spawnInterval = 750; // 초기 0.75초마다 생성 (기존 대비 2배 빠름!)
 let enemySpeedMultiplier = 1; // 시간이 지날수록 빨라지는 배율
 
-// 업그레이드 스탯 변수 (파워업 시스템 적용)
+// 업그레이드 스탯 변수 (레벨 기반 & 진화형으로 개편)
+let fireRateLevel = 1;
+let multiShotLevel = 1;
+let enemySlowLevel = 1;
+
 let currentFireRate = 180; // 기본 발사 쿨타임 (ms)
-let currentMultiShot = 2; // 기본 총알 발사 수 (2는 양쪽 날개에서 하나씩)
-let costFireRate = 50;
-let costMultiShot = 200;
-let costEnemySpeed = 500; // [ADD] Missing variable
-let costLaser = 5000;      // [ADD] Missing variable
-let baseEnemySpeedMultiplier = 1; // [ADD] Missing variable
-let currentLaserActive = false; // [ADD] Missing variable
+let currentMultiShot = 1;   // 기본 1발 시작 (업그레이드 시 V자 -> 방사형)
+let baseEnemySpeedMultiplier = 1.0;
+
+let costFireRate = 1000;
+let costMultiShot = 1000;
+let costEnemySlow = 1000;
+
+let costEnemySpeed = 1000; // 기존 변수 (HUD 연동 시 costEnemySlow로 대체/혼용 가능)
+let costLaser = 5000;
+let currentLaserActive = false;
 
 // 모의 광고 시청 여부 리미터
 let isRevived = false;
@@ -813,50 +836,59 @@ class Player {
         ctx.restore();
     }
 
+    // [NEW] 레벨에 따른 총알 색상 반환 (진화 시각 효과)
+    getBulletColor() {
+        if (fireRateLevel >= 15) return '#ff00ff'; // 마젠타 (초강력)
+        if (fireRateLevel >= 10) return '#ffff00'; // 골드/옐로우
+        if (fireRateLevel >= 5)  return '#00ff00'; // 네온 그린
+        return '#00ffff'; // 기본 네온 블루
+    }
+
     fire() {
         const currentTime = Date.now();
-        if (currentTime - this.lastShotTime > currentFireRate) {
+        
+        // 레벨에 따라 공속 계산 (최소 50ms)
+        const calcFireRate = Math.max(50, 180 - (fireRateLevel - 1) * 10);
+        
+        if (currentTime - this.lastShotTime > calcFireRate) {
+            const bulletColor = this.getBulletColor();
 
             if (currentLaserActive) {
-                // [NEW] Ultimate Piercing Laser: 가운데 두꺼운 관통 레이저 발사
-                const b = new Bullet(this.x, this.y - this.height / 2, 0, -35); // 엄청 빠름
-                b.color = '#ff00ff'; // 마젠타 색상
+                // [NEW] Ultimate Piercing Laser
+                const b = new Bullet(this.x, this.y - this.height / 2, 0, -35);
+                b.color = '#ff00ff';
                 b.width = 15;
                 b.height = 60;
-                b.damage = 100; // 보스도 한방급 데미지
-                b.isPiercing = true; // [NEW] 관통 속성 추가
+                b.damage = 100;
+                b.isPiercing = true;
                 bullets.push(b);
             } else if (this.powerup === 'red') {
-                // Quad-Shot: 전방 4발
+                // Quad-Shot
                 const spread = 20;
                 for (let i = 0; i < 4; i++) {
-                    bullets.push(new Bullet(this.x - 30 + (i * spread), this.y - this.height / 2));
-                }
-            } else if (this.powerup === 'blue') {
-                // Radial-Shot: 방사형 5발
-                const angles = [-30, -15, 0, 15, 30];
-                angles.forEach(angle => {
-                    const rad = angle * Math.PI / 180;
-                    bullets.push(new Bullet(this.x, this.y - this.height / 2, Math.sin(rad) * 15, -Math.cos(rad) * 15));
-                });
-            } else if (this.powerup === 'fire') {
-                // [NEW] Super-Fire-Shot: 전방 7방향 거대 불꽃탄
-                const angles = [-45, -30, -15, 0, 15, 30, 45];
-                angles.forEach(angle => {
-                    const rad = angle * Math.PI / 180;
-                    const b = new Bullet(this.x, this.y - this.height / 2, Math.sin(rad) * 12, -Math.cos(rad) * 12);
-                    b.color = '#ffaa00';
-                    b.width = 8;
-                    b.height = 30;
-                    b.damage = 5; // 초강력 데미지
+                    const b = new Bullet(this.x - 30 + (i * spread), this.y - this.height / 2);
+                    b.color = bulletColor;
                     bullets.push(b);
-                });
+                }
             } else {
-                // 기본 샷 (멀티샷 반영)
-                let spread = 15;
-                let startOffset = -spread * (currentMultiShot - 1) / 2;
-                for (let i = 0; i < currentMultiShot; i++) {
-                    bullets.push(new Bullet(this.x + startOffset + (spread * i), this.y - this.height / 2));
+                // [MOD] 멀티샷 진화 시스템 (1발 -> 2발 V자 -> 3발 방사형)
+                if (multiShotLevel === 1) {
+                    const b = new Bullet(this.x, this.y - this.height / 2);
+                    b.color = bulletColor;
+                    bullets.push(b);
+                } else if (multiShotLevel === 2) {
+                    // V자 2발
+                    bullets.push(new Bullet(this.x - 10, this.y - this.height / 2, -1, -25));
+                    bullets.push(new Bullet(this.x + 10, this.y - this.height / 2, 1, -25));
+                } else {
+                    // 3발 방사형
+                    const angles = [-10, 0, 10];
+                    angles.forEach(angle => {
+                        const rad = angle * Math.PI / 180;
+                        const b = new Bullet(this.x, this.y - this.height / 2, Math.sin(rad) * 20, -Math.cos(rad) * 20);
+                        b.color = bulletColor;
+                        bullets.push(b);
+                    });
                 }
             }
             playLaserSound(); // 레이저 사운드 재생 슉슉!
@@ -1587,6 +1619,14 @@ function gameLoop() {
         progressText.innerText = `To Next Level: ${currentProgressCoins.toLocaleString()} / ${nextLevelCoinGoal.toLocaleString()}`;
     }
 
+    // [NEW] HUD 퀵 업그레이드 버튼 갱신
+    btnQuickFireRate.innerText = `🔫 SPD [LV.${fireRateLevel}] ${costFireRate.toLocaleString()}`;
+    btnQuickFireRate.disabled = totalCoins < costFireRate;
+    btnQuickMultiShot.innerText = `🌟 MLT [LV.${multiShotLevel}] ${costMultiShot.toLocaleString()}`;
+    btnQuickMultiShot.disabled = totalCoins < costMultiShot || multiShotLevel >= 3; // 멀티샷은 최대 3레벨(3발)
+    btnQuickEnemySlow.innerText = `🐢 SLW [LV.${enemySlowLevel}] ${costEnemySlow.toLocaleString()}`;
+    btnQuickEnemySlow.disabled = totalCoins < costEnemySlow || enemySlowLevel >= 8; // 최대 70% 감속
+
     // 다음 프레임 예약
     animationId = requestAnimationFrame(gameLoop);
 }
@@ -1880,6 +1920,40 @@ bindTouchAndClick(adDoubleCoinTimedBtn, () => {
         alert("🚀 5-Minute 2X Coin Mode Activated!");
         updateShopUI();
     });
+});
+
+// [NEW] HUD 퀵 업그레이드 버튼 리스너
+bindTouchAndClick(btnQuickFireRate, () => {
+    if (totalCoins >= costFireRate) {
+        totalCoins -= costFireRate;
+        fireRateLevel++;
+        costFireRate *= 2; // 가격 2배 상승
+        saveData();
+        playMagnetSound(); // 공통 강화 효과음
+        updateShopUI();
+    }
+});
+
+bindTouchAndClick(btnQuickMultiShot, () => {
+    if (totalCoins >= costMultiShot && multiShotLevel < 3) {
+        totalCoins -= costMultiShot;
+        multiShotLevel++;
+        costMultiShot *= 2;
+        saveData();
+        playMagnetSound();
+        updateShopUI();
+    }
+});
+
+bindTouchAndClick(btnQuickEnemySlow, () => {
+    if (totalCoins >= costEnemySlow && enemySlowLevel < 8) {
+        totalCoins -= costEnemySlow;
+        enemySlowLevel++;
+        costEnemySlow *= 2;
+        saveData();
+        playMagnetSound();
+        updateShopUI();
+    }
 });
 
 // 광고 모의(Reward Ads) 로직 연결
