@@ -1056,16 +1056,10 @@ class Enemy {
             this.spinAngle += this.spinSpeed;
         }
 
-        // 타겟팅 객체라면 원래 속도에 파동을 살짝 더하고, 일반 객체면 X축으로 크게 물결침
-        let moveX = this.speedX + Math.sin(this.angle) * this.curveMagnitude;
-
-        // [MOD] 레이싱 카 전용 부드러운 곡선 패턴 (정신없는 지그재그 제거)
-        if (this.modelType === 'racing_car') {
-            moveX = this.speedX + Math.sin(this.angle * 0.5) * this.zigzagAmp * 0.5;
-        }
-
-        this.x += moveX;
-        this.y += this.speedY;
+        // [NEW] 감속 업그레이드 반영 (최대 7개 레벨, 1.0 -> 0.3)
+        const slowFactor = Math.max(0.3, 1.0 - (enemySlowLevel - 1) * 0.1);
+        this.x += moveX * slowFactor;
+        this.y += this.speedY * slowFactor;
 
         // 화면 테두리에 부딪히면 튕기게 처리 (유도 비행기가 벽 밖으로 나가는 것 방지)
         if (this.x - this.radius < 0) {
