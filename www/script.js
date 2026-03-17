@@ -1,6 +1,10 @@
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
+// [VERIFICATION] 버전 확인용 얼럿 (배포 확인 후 삭제 예정)
+console.log("!!! Ver 3.0-FIXED Script Loading !!!");
+alert("뽕뽕비행기 Ver 3.0-FIXED 로직이 적용되었습니다!");
+
 async function initAds() {
     if (!window.Capacitor) return;
     try {
