@@ -1,10 +1,10 @@
-// Ver 3.0.6-BULLET-STACK-FINAL
+// Ver 3.0.7-SHOP-FINAL
 // [REPAIR] 전역 에러 핸들러 (사소한 에러가 게임 전체를 멈추는 것을 방지)
 window.onerror = function(message, source, lineno, colno, error) {
     console.warn("Global Error Captured (Defensive Mode):", message);
     return true; // 에러 전파 방지
 };
-console.log("🚀 뽕뽕비행기: 갤럭시 디펜더 [Ver 3.0.6-BULLET-STACK-FINAL] 가동 시작");
+console.log("🚀 뽕뽕비행기: 갤럭시 디펜더 [Ver 3.0.7-SHOP-FINAL] 가동 시작");
 
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
@@ -321,6 +321,44 @@ function playClinkSound() {
     osc.type = 'sine';
     osc.frequency.setValueAtTime(1500, now);
     osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(now + 0.2);
+}
+
+// [NEW] 결제 성공 소리 (카칭!)
+function playPurchaseSuccessSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const osc1 = audioCtx.createOscillator();
+    const osc2 = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc1.frequency.setValueAtTime(1000, now);
+    osc1.frequency.exponentialRampToValueAtTime(1500, now + 0.1);
+    osc2.frequency.setValueAtTime(1200, now + 0.05);
+    osc2.frequency.exponentialRampToValueAtTime(1800, now + 0.15);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc1.connect(gain); osc2.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc1.start(); osc2.start();
+    osc1.stop(now + 0.3); osc2.stop(now + 0.3);
+}
+
+// [NEW] 결제 실패 소리 (띠딕- 소리)
+function playPurchaseFailSound() {
+    if (!audioCtx) audioCtx = new AudioContext();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(100, now);
+    osc.frequency.linearRampToValueAtTime(50, now + 0.2);
     gain.gain.setValueAtTime(0.1, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
     osc.connect(gain);
@@ -1626,7 +1664,7 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    if (scoreValue) scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.6-BULLET-STACK-FINAL)`;
+    if (scoreValue) scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.7-SHOP-FINAL)`;
     if (coinValue) coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [NEW] 2배 코인 타이머 자막 표시 및 자석 비용 갱신
@@ -1740,25 +1778,39 @@ function startGame() {
 }
 
 function updateShopUI() {
-    // [MOD] 상점 코인 표시 교정
+    // 1. 코인 표시 정규화
     const displayTotalCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
-    shopCoinValue.innerText = displayTotalCoins.toLocaleString();
-    costFireRateElement.innerText = costFireRate;
-    costMultiShotElement.innerText = costMultiShot;
-    costEnemySpeedElement.innerText = costEnemySpeed;
-    costLaserElement.innerText = costLaser;
+    if (shopCoinValue) shopCoinValue.innerText = displayTotalCoins.toLocaleString();
+    if (coinValue) coinValue.innerText = displayTotalCoins.toLocaleString();
 
-    // 코인이 부족하거나, 최대 업그레이드 수치 도달 시 버튼 비활성화 처리
-    upgFireRateBtn.disabled = totalCoins < costFireRate || currentFireRate <= 50;
-    upgMultiShotBtn.disabled = totalCoins < costMultiShot || currentMultiShot >= 5;
-    upgEnemySpeedBtn.disabled = totalCoins < costEnemySpeed || baseEnemySpeedMultiplier <= 0.5; // 최대 50% 감속
+    // 2. 상점 가격 텍스트 갱신
+    if (costFireRateElement) costFireRateElement.innerText = costFireRate.toLocaleString();
+    if (costMultiShotElement) costMultiShotElement.innerText = costMultiShot.toLocaleString();
+    if (costEnemySpeedElement) costEnemySpeedElement.innerText = costEnemySpeed.toLocaleString(); 
+    if (costLaserElement) costLaserElement.innerText = costLaser.toLocaleString();
+    if (magnetCost) magnetCost.innerText = costMagnetRange.toLocaleString();
+
+    // 3. HUD 퀵 버튼 텍스트 갱신 [LV.X] 표시 추가
+    if (btnQuickFireRate) btnQuickFireRate.innerText = `🔫 SPD [LV.${fireRateLevel}] ${costFireRate.toLocaleString()}`;
+    if (btnQuickMultiShot) btnQuickMultiShot.innerText = `🌟 MLT [LV.${multiShotLevel}] ${costMultiShot.toLocaleString()}`;
+    if (btnQuickEnemySlow) btnQuickEnemySlow.innerText = `🐢 SLW [LV.${enemySlowLevel}] ${costEnemySpeed.toLocaleString()}`;
+
+    // 4. 버튼 활성화/비활성화 제어
+    upgFireRateBtn.disabled = totalCoins < costFireRate;
+    upgMultiShotBtn.disabled = totalCoins < costMultiShot || multiShotLevel >= 5;
+    upgEnemySpeedBtn.disabled = totalCoins < costEnemySpeed || enemySlowLevel >= 10; 
     
-    // 레이저는 단판용 (장착 여부에 따라 텍스트 변경)
+    btnQuickFireRate.disabled = totalCoins < costFireRate;
+    btnQuickMultiShot.disabled = totalCoins < costMultiShot || multiShotLevel >= 5;
+    btnQuickEnemySlow.disabled = totalCoins < costEnemySlow || enemySlowLevel >= 10;
+    btnMagnetUpg.disabled = totalCoins < costMagnetRange;
+    
+    // 레이저는 단판용 코드로 특수 처리
     if (currentLaserActive) {
         upgLaserBtn.innerText = "EQUIPPED";
         upgLaserBtn.disabled = true;
     } else {
-        upgLaserBtn.innerText = "EQUIP (1 Round)";
+        upgLaserBtn.innerText = `EQUIP (${costLaser.toLocaleString()})`;
         upgLaserBtn.disabled = totalCoins < costLaser;
     }
 }
@@ -1891,117 +1943,146 @@ bindTouchAndClick(closeShopBtn, () => {
     startScreen.classList.add('active');
 });
 
-// 상점 업그레이드 로직
+// 상점에 진입하거나 나갈 때 UI 최신화는 이미 등록됨
+
+// [FINAL] 상점 및 HUD 업그레이드 통합 로직
 bindTouchAndClick(upgFireRateBtn, () => {
-    if (totalCoins >= costFireRate && currentFireRate > 50) {
+    if (totalCoins >= costFireRate) {
         totalCoins -= costFireRate;
-        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
-        currentFireRate -= 20; 
-        costFireRate = Math.floor(costFireRate * 1.5); 
+        totalCoins = Math.floor(totalCoins / 100) * 100;
+        fireRateLevel++;
+        costFireRate *= 2; 
         saveData();
         updateShopUI();
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (SPD LV Up)");
+    } else {
+        playPurchaseFailSound();
+        alert("Not enough coins!");
     }
 });
 
 bindTouchAndClick(upgMultiShotBtn, () => {
-    if (totalCoins >= costMultiShot && currentMultiShot < 5) {
+    if (totalCoins >= costMultiShot && multiShotLevel < 5) {
         totalCoins -= costMultiShot;
-        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
-        currentMultiShot += 1; 
-        costMultiShot = Math.floor(costMultiShot * 2.5);
+        totalCoins = Math.floor(totalCoins / 100) * 100;
+        multiShotLevel++;
+        costMultiShot *= 2;
         saveData();
         updateShopUI();
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (MLT LV Up)");
+    } else {
+        playPurchaseFailSound();
+        alert("Not enough coins!");
     }
 });
 
-// [NEW] 적군 속도 감소 영구 업그레이드
 bindTouchAndClick(upgEnemySpeedBtn, () => {
-    if (totalCoins >= costEnemySpeed && baseEnemySpeedMultiplier > 0.5) {
+    if (totalCoins >= costEnemySpeed && enemySlowLevel < 10) {
         totalCoins -= costEnemySpeed;
-        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
-        baseEnemySpeedMultiplier = Math.max(0.5, baseEnemySpeedMultiplier - 0.1); 
-        costEnemySpeed = Math.floor(costEnemySpeed * 2.5);
+        totalCoins = Math.floor(totalCoins / 100) * 100;
+        enemySlowLevel++;
+        costEnemySpeed *= 2;
         saveData();
         updateShopUI();
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (SLW LV Up)");
+    } else {
+        playPurchaseFailSound();
+        alert("Not enough coins!");
     }
 });
 
-// [NEW] 궁극의 레이저 무기 (1판 유지)
 bindTouchAndClick(upgLaserBtn, () => {
     if (totalCoins >= costLaser && !currentLaserActive) {
         totalCoins -= costLaser;
-        totalCoins = Math.floor(totalCoins / 100) * 100; // [FIX] 잔액 강제 정규화
+        totalCoins = Math.floor(totalCoins / 100) * 100;
         currentLaserActive = true;
         saveData();
         updateShopUI();
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (Laser Equipped)");
+    } else {
+        playPurchaseFailSound();
+        alert("Not enough coins!");
     }
 });
 
-// [NEW] 상점 내에서 광고 보고 50000 코인 즉시 받기
-bindTouchAndClick(adCoinShopBtn, () => {
-    showRewarded(() => {
-        totalCoins = Math.floor(totalCoins / 100) * 100 + 50000;
+// HUD 퀵 업그레이드 버튼 (상점과 가격/레벨 공유)
+bindTouchAndClick(btnQuickFireRate, () => {
+    if (totalCoins >= costFireRate) {
+        totalCoins -= costFireRate;
+        totalCoins = Math.floor(totalCoins / 100) * 100;
+        fireRateLevel++;
+        costFireRate *= 2;
         saveData();
         updateShopUI();
-    });
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (SPD LV Up)");
+    } else {
+        playPurchaseFailSound();
+        alert("Not enough coins!");
+    }
 });
 
-// [NEW] 자석 강화 리스너 (HUD에서 바로 강화)
+bindTouchAndClick(btnQuickMultiShot, () => {
+    if (totalCoins >= costMultiShot && multiShotLevel < 5) {
+        totalCoins -= costMultiShot;
+        totalCoins = Math.floor(totalCoins / 100) * 100;
+        multiShotLevel++;
+        costMultiShot *= 2;
+        saveData();
+        updateShopUI();
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (MLT LV Up)");
+    } else {
+        playPurchaseFailSound();
+        alert("Not enough coins!");
+    }
+});
+
+bindTouchAndClick(btnQuickEnemySlow, () => {
+    if (totalCoins >= costEnemySlow && enemySlowLevel < 10) {
+        totalCoins -= costEnemySlow;
+        totalCoins = Math.floor(totalCoins / 100) * 100;
+        enemySlowLevel++;
+        costEnemySlow *= 2;
+        saveData();
+        updateShopUI();
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (SLW LV Up)");
+    } else {
+        playPurchaseFailSound();
+        alert("Not enough coins!");
+    }
+});
+
 bindTouchAndClick(btnMagnetUpg, () => {
     if (totalCoins >= costMagnetRange) {
         totalCoins -= costMagnetRange;
         totalCoins = Math.floor(totalCoins / 100) * 100;
         magnetRange += 20;
-        costMagnetRange = Math.floor(costMagnetRange * 1.8); // 비용 1.8배 증가
+        costMagnetRange *= 2;
         saveData();
-        playMagnetSound();
         updateShopUI();
+        playPurchaseSuccessSound();
+        alert("Purchase Successful! (Magnet Range Up)");
     } else {
-        alert("🟡 Not enough coins for Magnet upgrade!");
+        playPurchaseFailSound();
+        alert("Not enough coins!");
     }
 });
 
-// [NEW] 5분 코인 2배 광고 리스너 (상점에서 시청)
+// 5분 코인 2배 광고 리스너 (상점에서 시청)
 bindTouchAndClick(adDoubleCoinTimedBtn, () => {
     showRewarded(() => {
         doubleCoinTimer = 300; // 5분
+        saveData();
+        updateShopUI();
+        playPurchaseSuccessSound();
         alert("🚀 5-Minute 2X Coin Mode Activated!");
-        updateShopUI();
     });
-});
-
-// [NEW] HUD 퀵 업그레이드 버튼 리스너
-bindTouchAndClick(btnQuickFireRate, () => {
-    if (totalCoins >= costFireRate) {
-        totalCoins -= costFireRate;
-        fireRateLevel++;
-        costFireRate *= 2; // 가격 2배 상승
-        saveData();
-        playMagnetSound(); // 공통 강화 효과음
-        updateShopUI();
-    }
-});
-
-bindTouchAndClick(btnQuickMultiShot, () => {
-    if (totalCoins >= costMultiShot && multiShotLevel < 3) {
-        totalCoins -= costMultiShot;
-        multiShotLevel++;
-        costMultiShot *= 2;
-        saveData();
-        playMagnetSound();
-        updateShopUI();
-    }
-});
-
-bindTouchAndClick(btnQuickEnemySlow, () => {
-    if (totalCoins >= costEnemySlow && enemySlowLevel < 8) {
-        totalCoins -= costEnemySlow;
-        enemySlowLevel++;
-        costEnemySlow *= 2;
-        saveData();
-        playMagnetSound();
-        updateShopUI();
-    }
 });
 
 // 광고 모의(Reward Ads) 로직 연결
