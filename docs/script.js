@@ -906,8 +906,9 @@ class Player {
                 // [NEW] 가산형(Additive) 중첩 로직 적용
                 // 1. 총알 개수 계산 (상점 레벨 기반 + 아이템 보너스)
                 let totalBulletCount = fireRateLevel; 
-                if (this.powerup === 'red') totalBulletCount += 2;   // 빨간템 +2발
-                if (this.powerup === 'blue') totalBulletCount += 1;  // 파란템 +1발
+                if (this.powerup === 'fire') totalBulletCount += 3;  // 주황템(최강) +3발 (가장 강력)
+                else if (this.powerup === 'red') totalBulletCount += 2;   // 빨간템 +2발
+                else if (this.powerup === 'blue') totalBulletCount += 1;  // 파란템 +1발
 
                 // 2. 부채꼴 발사 (Loop & Angle) 계산
                 // 총알 개수가 많아질수록 퍼지는 각도를 유동적으로 조절
