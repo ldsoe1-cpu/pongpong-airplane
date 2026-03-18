@@ -1,10 +1,10 @@
-// Ver 3.0.5-FINAL-SYNC
+// Ver 3.0.6-BULLET-STACK-FINAL
 // [REPAIR] 전역 에러 핸들러 (사소한 에러가 게임 전체를 멈추는 것을 방지)
 window.onerror = function(message, source, lineno, colno, error) {
     console.warn("Global Error Captured (Defensive Mode):", message);
     return true; // 에러 전파 방지
 };
-console.log("🚀 뽕뽕비행기: 갤럭시 디펜더 [Ver 3.0.5-FINAL-SYNC] 가동 시작");
+console.log("🚀 뽕뽕비행기: 갤럭시 디펜더 [Ver 3.0.6-BULLET-STACK-FINAL] 가동 시작");
 
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
@@ -893,10 +893,8 @@ class Player {
         const calcFireRate = Math.max(50, 180 - (fireRateLevel - 1) * 10);
         
         if (currentTime - this.lastShotTime > calcFireRate) {
-            const bulletColor = this.getBulletColor();
-
             if (currentLaserActive) {
-                // [NEW] Ultimate Piercing Laser
+                // [SPECIAL] Ultimate Piercing Laser (상점 특별 아이템)
                 const b = new Bullet(this.x, this.y - this.height / 2, 0, -35);
                 b.color = '#ff00ff';
                 b.width = 15;
@@ -905,37 +903,45 @@ class Player {
                 b.isPiercing = true;
                 bullets.push(b);
             } else {
-                // [MOD] 중첩 로직 적용: 업그레이드 발수 + 아이템 발수
-                
-                // 1. 업그레이드 기반 기본 발사 (1~3발)
-                if (multiShotLevel === 1) {
-                    bullets.push(new Bullet(this.x, this.y - this.height / 2, 0, -25, bulletColor));
-                } else if (multiShotLevel === 2) {
-                    bullets.push(new Bullet(this.x - 10, this.y - this.height / 2, -1, -25, bulletColor));
-                    bullets.push(new Bullet(this.x + 10, this.y - this.height / 2, 1, -25, bulletColor));
-                } else {
-                    const angles = [-10, 0, 10];
-                    angles.forEach(angle => {
-                        const rad = angle * Math.PI / 180;
-                        const b = new Bullet(this.x, this.y - this.height / 2, Math.sin(rad) * 20, -Math.cos(rad) * 20);
-                        b.color = bulletColor;
-                        bullets.push(b);
-                    });
-                }
+                // [NEW] 가산형(Additive) 중첩 로직 적용
+                // 1. 총알 개수 계산 (상점 레벨 기반 + 아이템 보너스)
+                let totalBulletCount = fireRateLevel; 
+                if (this.powerup === 'red') totalBulletCount += 2;   // 빨간템 +2발
+                if (this.powerup === 'blue') totalBulletCount += 1;  // 파란템 +1발
 
-                // 2. 레드 아이템(Quad-Shot) 효과 중첩 (+4발)
-                if (this.powerup === 'red') {
-                    const spread = 20;
-                    for (let i = 0; i < 4; i++) {
-                        // 기존 위치와 겹치지 않게 약간 오프셋을 줌
-                        const b = new Bullet(this.x - 45 + (i * 30), this.y - this.height / 4, 0, -30);
-                        b.color = '#ff3333'; // 아이템 총알은 붉은색 강조
-                        b.damage = 1.5;      // 중첩 시 데미지 약간 강화
-                        bullets.push(b);
+                // 2. 부채꼴 발사 (Loop & Angle) 계산
+                // 총알 개수가 많아질수록 퍼지는 각도를 유동적으로 조절
+                const maxSpread = Math.min(80, 10 + totalBulletCount * 5); 
+                
+                for (let i = 0; i < totalBulletCount; i++) {
+                    let angle = 0;
+                    if (totalBulletCount > 1) {
+                        // 중앙을 기준으로 대칭되게 각도 분산
+                        angle = -maxSpread / 2 + (i * (maxSpread / (totalBulletCount - 1)));
                     }
+                    
+                    const rad = angle * Math.PI / 180;
+                    const vx = Math.sin(rad) * 25;
+                    const vy = -Math.cos(rad) * 25;
+                    
+                    const b = new Bullet(this.x, this.y - this.height / 2, vx, vy);
+                    
+                    // 3. 색상 부여 (아이템 색상 우선, 없으면 상점 레벨 색상)
+                    if (this.powerup === 'red') b.color = '#ff3333';
+                    else if (this.powerup === 'blue') b.color = '#3333ff';
+                    else if (this.powerup === 'fire') b.color = '#ff9900';
+                    else b.color = this.getBulletColor();
+
+                    // 4. 주황템('fire') 상태 특수 효과 부여
+                    if (this.powerup === 'fire') {
+                        b.damage = 5;
+                        b.isPiercing = true;
+                    }
+                    
+                    bullets.push(b);
                 }
             }
-            playLaserSound(); // 레이저 사운드 재생 슉슉!
+            playLaserSound(); 
             this.lastShotTime = currentTime;
         }
     }
@@ -1619,7 +1625,7 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    if (scoreValue) scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.5-FINAL-SYNC)`;
+    if (scoreValue) scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.6-BULLET-STACK-FINAL)`;
     if (coinValue) coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [NEW] 2배 코인 타이머 자막 표시 및 자석 비용 갱신
