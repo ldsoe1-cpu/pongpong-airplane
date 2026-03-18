@@ -1,8 +1,24 @@
+// [REPAIR] 전역 에러 핸들러 (사소한 에러가 게임 전체를 멈추는 것을 방지)
+window.onerror = function(message, source, lineno, colno, error) {
+    console.warn("Global Error Captured (Defensive Mode):", message);
+    return true; // 에러 전파 방지
+};
+console.log("🚀 뽕뽕비행기: 갤럭시 디펜더 [Ver 3.0.5-REPAIR] 가동 시작");
+
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
 
-// [VERIFICATION] 버전 확인용
-console.log("!!! Ver 3.0.5-FINAL Script Loading (HUD & Evolution) !!!");
+// [DEFENSIVE] 안전하게 엘리먼트를 가져오는 헬퍼 함수
+function safeGetElement(id) {
+    const el = document.getElementById(id);
+    if (!el) {
+        console.warn(`[Defensive] Element with id '${id}' not found. Creating a dummy to prevent crashes.`);
+        const dummy = document.createElement('div');
+        dummy.id = 'dummy'; // 더미 유무 확인을 위한 식별자 부여
+        return dummy;
+    }
+    return el;
+}
 
 async function initAds() {
     if (!window.Capacitor) return;
@@ -88,10 +104,26 @@ function loadData() {
         fireRateLevel = sanitize(data.fireRateLevel, 1);
         multiShotLevel = sanitize(data.multiShotLevel, 1);
         enemySlowLevel = sanitize(data.enemySlowLevel, 1);
-        costFireRate = sanitize(data.costFireRate, 1000);
-        costMultiShot = sanitize(data.costMultiShot, 1000);
-        costEnemySlow = sanitize(data.costEnemySlow, 1000);
+        
+        // 3.0.5 경제 밸런스: 최소 비용 1000 강제 (데이터 오염 방지)
+        costFireRate = Math.max(1000, sanitize(data.costFireRate, 1000));
+        costMultiShot = Math.max(1000, sanitize(data.costMultiShot, 1000));
+        costEnemySlow = Math.max(1000, sanitize(data.costEnemySlow, 1000));
+        
+        costEnemySpeed = Math.max(1000, sanitize(data.costEnemySpeed, 1000));
+        costLaser = Math.max(5000, sanitize(data.costLaser, 5000));
+        costMagnetRange = Math.max(1000, sanitize(data.costMagnetRange, 1000));
+    } else {
+        // [DEFENSIVE] 데이터가 아예 없는 경우 기본값 강제 할당
+        fireRateLevel = 1;
+        multiShotLevel = 1;
+        enemySlowLevel = 1;
+        costFireRate = 1000;
+        costMultiShot = 1000;
+        costEnemySlow = 1000;
+        totalCoins = 0;
     }
+    console.log("Data loaded successfully.");
 }
 
 async function showRewarded(successCallback) {
@@ -604,50 +636,58 @@ function loadPandaSprite(src) {
 loadPandaSprite('panda_sprite_v4.png');
 
 // UI 엘리먼트 가져오기
-const uiLayer = document.getElementById('uiLayer');
-const scoreValue = document.getElementById('scoreValue');
-const coinValue = document.getElementById('coinValue');
-const finalScoreValue = document.getElementById('finalScoreValue');
-const acquiredCoinValue = document.getElementById('acquiredCoinValue');
+const uiLayer = safeGetElement('uiLayer');
+const scoreValue = safeGetElement('scoreValue');
+const coinValue = safeGetElement('coinValue');
+const finalScoreValue = safeGetElement('finalScoreValue');
+const acquiredCoinValue = safeGetElement('acquiredCoinValue');
 
-const startScreen = document.getElementById('startScreen');
-const gameOverScreen = document.getElementById('gameOverScreen');
-const gameClearScreen = document.getElementById('gameClearScreen');
-const shopScreen = document.getElementById('shopScreen');
+const startScreen = safeGetElement('startScreen');
+const gameOverScreen = safeGetElement('gameOverScreen');
+const gameClearScreen = safeGetElement('gameClearScreen');
+const shopScreen = safeGetElement('shopScreen');
 
-const startBtn = document.getElementById('startBtn');
-const restartBtn = document.getElementById('restartBtn');
-const playAgainBtn = document.getElementById('playAgainBtn');
+const startBtn = safeGetElement('startBtn');
+const restartBtn = safeGetElement('restartBtn');
+const playAgainBtn = safeGetElement('playAgainBtn');
 console.log("Buttons found:", {startBtn:!!startBtn, restartBtn:!!restartBtn, playAgainBtn:!!playAgainBtn});
-const shopBtn = document.getElementById('shopBtn');
-const closeShopBtn = document.getElementById('closeShopBtn');
+const shopBtn = safeGetElement('shopBtn');
+const closeShopBtn = safeGetElement('closeShopBtn');
 
-const shopCoinValue = document.getElementById('shopCoinValue');
-const costFireRateElement = document.getElementById('costFireRate');
-const costMultiShotElement = document.getElementById('costMultiShot');
-const upgFireRateBtn = document.getElementById('upgFireRateBtn');
-const upgMultiShotBtn = document.getElementById('upgMultiShotBtn');
+const shopCoinValue = safeGetElement('shopCoinValue');
+const costFireRateElement = safeGetElement('costFireRate');
+const costMultiShotElement = safeGetElement('costMultiShot');
+const upgFireRateBtn = safeGetElement('upgFireRateBtn');
+const upgMultiShotBtn = safeGetElement('upgMultiShotBtn');
 
-const adReviveBtn = document.getElementById('adReviveBtn');
-const adDoubleCoinBtn = document.getElementById('adDoubleCoinBtn');
-const clearScoreValue = document.getElementById('clearScoreValue');
-const clearCoinValue = document.getElementById('clearCoinValue');
-const debugPanel = document.getElementById('debugPanel');
-const debugStageInfo = document.getElementById('debugStageInfo');
-const btnStageUp = document.getElementById('btnStageUp');
-const btnStageDown = document.getElementById('btnStageDown');
-const btnCoinCheat = document.getElementById('btnCoinCheat');
+// [NEW] 상점 추가 버튼들
+const costEnemySpeedElement = safeGetElement('costEnemySpeed');
+const upgEnemySpeedBtn = safeGetElement('upgEnemySpeedBtn');
+const costLaserElement = safeGetElement('costLaser');
+const upgLaserBtn = safeGetElement('upgLaserBtn');
+const adCoinShopBtn = safeGetElement('adCoinShopBtn');
+
+const adReviveBtn = safeGetElement('adReviveBtn');
+const adDoubleCoinBtn = safeGetElement('adDoubleCoinBtn');
+const clearScoreValue = safeGetElement('clearScoreValue');
+const clearCoinValue = safeGetElement('clearCoinValue');
+const debugPanel = safeGetElement('debugPanel');
+const debugStageInfo = safeGetElement('debugStageInfo');
+const btnStageUp = safeGetElement('btnStageUp');
+const btnStageDown = safeGetElement('btnStageDown');
+const btnCoinCheat = safeGetElement('btnCoinCheat');
+const btnHardReset = safeGetElement('btnHardReset');
 
 // [NEW] HUD 퀵 업그레이드 버튼
-const btnQuickFireRate = document.getElementById('btnQuickFireRate');
-const btnQuickMultiShot = document.getElementById('btnQuickMultiShot');
-const btnQuickEnemySlow = document.getElementById('btnQuickEnemySlow');
+const btnQuickFireRate = safeGetElement('btnQuickFireRate');
+const btnQuickMultiShot = safeGetElement('btnQuickMultiShot');
+const btnQuickEnemySlow = safeGetElement('btnQuickEnemySlow');
 
 // [NEW] 자석 및 2배 광고 UI 요소
-const btnMagnetUpg = document.getElementById('btnMagnetUpg');
-const magnetCostDisplay = document.getElementById('magnetCost');
-const doubleCoinTimerDisplay = document.getElementById('doubleCoinTimerDisplay');
-const adDoubleCoinTimedBtn = document.getElementById('adDoubleCoinTimedBtn');
+const btnMagnetUpg = safeGetElement('btnMagnetUpg');
+const magnetCostDisplay = safeGetElement('magnetCost');
+const doubleCoinTimerDisplay = safeGetElement('doubleCoinTimerDisplay');
+const adDoubleCoinTimedBtn = safeGetElement('adDoubleCoinTimedBtn');
 
 // URL 파라미터에 debug=true가 있거나 로컬 환경(localhost)이면 테스트 패널을 보여줌 (대표님 확인용)
 const urlParams = new URLSearchParams(window.location.search);
@@ -1057,9 +1097,12 @@ class Enemy {
             this.spinAngle += this.spinSpeed;
         }
 
-        // [NEW] 감속 업그레이드 반영 (최대 7개 레벨, 1.0 -> 0.3)
+        // [FIX] moveX 변수가 정의되지 않았던 문제 해결. 
+        // 기존의 속도와 곡선 이동(sine wave)을 합산하여 실제 x 좌표를 업데이트합니다.
+        const currentMoveX = this.speedX + Math.sin(this.angle) * this.curveMagnitude;
         const slowFactor = Math.max(0.3, 1.0 - (enemySlowLevel - 1) * 0.1);
-        this.x += moveX * slowFactor;
+        
+        this.x += currentMoveX * slowFactor;
         this.y += this.speedY * slowFactor;
 
         // 화면 테두리에 부딪히면 튕기게 처리 (유도 비행기가 벽 밖으로 나가는 것 방지)
@@ -1350,7 +1393,8 @@ let shakeAmount = 20;
 // 메인 게임 루프
 // ==========================================
 function gameLoop() {
-    if (!isPlaying) return;
+    try {
+        if (!isPlaying) return;
 
     ctx.save();
     // 카메라 셰이크 로직
@@ -1389,124 +1433,109 @@ function gameLoop() {
         enemySpeedMultiplier += 0.002;
     }
 
-    // 총알 업데이트 (역순 순회하여 삭제 시 인덱스 밀림 방지)
-    bullets.forEach((bullet, index) => {
+    // [MOD] 총알 업데이트 - 안전하게 역순 for 루프로 변경하여 삭제 시 인덱스 밀림 방지
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const bullet = bullets[i];
         bullet.update();
         bullet.draw();
         if (bullet.markedForDeletion) {
-            bullets.splice(index, 1);
+            bullets.splice(i, 1);
         }
-    });
+    }
 
-    // 적 업데이트 및 그리기
-    enemies.forEach((enemy, index) => {
+    // [MOD] 적 업데이트 및 그리기 - 안전한 역순 for 루프
+    for (let i = enemies.length - 1; i >= 0; i--) {
+        const enemy = enemies[i];
         enemy.update();
         enemy.draw();
 
-        // 1. 플레이어와 적군 충돌 검사 (원형 vs 사각형 AABB 근사치)
+        // 1. 플레이어와 적군 충돌 검사
         const dx = player.x - enemy.x;
         const dy = player.y - enemy.y;
         const distance = Math.hypot(dx, dy);
 
-        // 부딪혔을 때 (플레이어 피격 반경은 약간 작게 잡아 유저에게 유리하게 판정)
         if (distance < enemy.radius + player.width / 3) {
-            // 플레이어 폭발 연출
-            for (let i = 0; i < 30; i++) {
+            for (let j = 0; j < 30; j++) {
                 particles.push(new Particle(player.x, player.y, '#ff0000'));
                 particles.push(new Particle(player.x, player.y, '#ffffff'));
             }
-            shakeTime = 20; // 20프레임 동안 화면 진동
+            shakeTime = 20;
 
             setTimeout(() => {
                 gameOver();
-            }, 500); // 0.5초 뒤 게임오버 화면 띄워서 타격감 극대화
+            }, 500);
 
-            isPlaying = false; // 루프 정지 (이벤트 무시 등)
+            isPlaying = false;
         }
 
-        // 2. 총알과 적군 충돌 검사
-        bullets.forEach((bullet, bIndex) => {
+        // 2. 총알과 적군 충돌 검사 - 내부도 역순 for 루프가 안전함
+        for (let j = bullets.length - 1; j >= 0; j--) {
+            const bullet = bullets[j];
             const bx = bullet.x - enemy.x;
             const by = bullet.y - enemy.y;
             const bDist = Math.hypot(bx, by);
 
             if (bDist < enemy.radius + bullet.radius) {
-                // 명중: 타격 파티클 생성
-                for (let i = 0; i < 3; i++) {
+                for (let k = 0; k < 3; k++) {
                     particles.push(new Particle(bullet.x, bullet.y, bullet.color));
                 }
 
-                // 타격음 분기: 대표님 커스텀 스테이지 사운드 적용
                 if (enemy.modelType === 'special_plate') {
                     playGlassSound();
                 } else if (enemy.modelType === 'racing_car') {
                     playKlaxonSound();
                 } else {
-                    // [NEW] 스테이지별 전용 타격음 분기
-                    if (currentStage === 11) {
-                        playClinkSound(); // 보석/동전 땡그랑!
-                    } else if (currentStage === 15) {
-                        playFireworkSound(); // 폭죽 빵빵! (기존 16단계에서 이동)
-                    } else if (currentStage === 18) {
-                        playInstrumentSound(enemy.model); // 악기별 소리 (북, 탬버린 등)
-                    }
+                    if (currentStage === 11) playClinkSound();
+                    else if (currentStage === 15) playFireworkSound();
+                    else if (currentStage === 18) playInstrumentSound(enemy.model);
                 }
 
                 enemy.hp -= bullet.damage || 1;
-                // 레이저 등 관통 속성이 없는 총알만 타격 후 즉시 소멸
                 if (!bullet.isPiercing) {
-                    bullet.markedForDeletion = true; // 총알 소멸
+                    bullet.markedForDeletion = true;
                 }
 
-                // 적 파괴
                 if (enemy.hp <= 0) {
                     enemy.markedForDeletion = true;
-                    
-                    // [최종 격리 개조] 점수와 코인은 절대 섞이지 않음 (독립 계산)
-                    // 1. 점수 연산 (정수 가산, 차감 절대 금지)
                     score = Math.floor(score + (enemy.maxHp * 10));
                     if (score < 0) score = 0; 
-
-                    // [MOD] 코인은 이제 드랍 아이템(노란 동전)을 먹었을 때만 올라갑니다.
-                    saveData(); // 점수 저장
+                    saveData();
 
                     if (enemy.modelType === 'special_plate') {
-                        // 완전히 깨질 땐 크게 소리냄 (2번 호출로 임시 볼륨 업)
                         playGlassSound();
                         playGlassSound();
                     }
 
-                    // [MOD] 모든 스테이지에서 파워업 코인 드랍 (확률 80%로 대폭 상향 - 먹는 재미 강조)
                     if (Math.random() < 0.80) {
                         const rand = Math.random();
-                        if (rand < 0.08) coins.push(new Coin(enemy.x, enemy.y, 'fire')); // 불꽃 파워업
+                        if (rand < 0.08) coins.push(new Coin(enemy.x, enemy.y, 'fire'));
                         else if (rand < 0.18) coins.push(new Coin(enemy.x, enemy.y, 'red'));
                         else if (rand < 0.28) coins.push(new Coin(enemy.x, enemy.y, 'blue'));
                         else coins.push(new Coin(enemy.x, enemy.y, 'gold'));
                     }
 
-                    // 대형 폭발 이펙트 생성
-                    for (let i = 0; i < 15; i++) {
+                    for (let k = 0; k < 15; k++) {
                         particles.push(new Particle(enemy.x, enemy.y, enemy.color));
                         particles.push(new Particle(enemy.x, enemy.y, '#ffffff'));
                     }
                 }
             }
-        });
+        }
 
         if (enemy.markedForDeletion) {
-            enemies.splice(index, 1);
+            enemies.splice(i, 1);
         }
-    });
+    }
 
-    // 파티클 업데이트 및 그리기
-    particles.forEach((particle, index) => {
+    // 파티클 업데이트 및 그리기 - 안전한 역순 for 루프
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const particle = particles[i];
         particle.update();
         particle.draw();
         if (particle.markedForDeletion) {
-            particles.splice(index, 1);
+            particles.splice(i, 1);
         }
-    });
+    }
 
     // 코인 렌더링 호출 전 스테이지 판단
     if (!window.isDeveloperStageOverridden) {
@@ -1571,14 +1600,15 @@ function gameLoop() {
         stageMessageTimer--;
     }
 
-    // 코인 렌더링 호출
-    coins.forEach((coin, index) => {
+    // 코인 렌더링 호출 - 안전한 역순 for 루프
+    for (let i = coins.length - 1; i >= 0; i--) {
+        const coin = coins[i];
         coin.update();
         coin.draw();
         if (coin.markedForDeletion) {
-            coins.splice(index, 1);
+            coins.splice(i, 1);
         }
-    });
+    }
 
     ctx.restore(); // 카메라 셰이크 복구용
 
@@ -1621,23 +1651,21 @@ function gameLoop() {
     const currentProgressCoins = Math.max(0, Math.floor(thisStageCoins));
     const progressPercent = (currentProgressCoins / nextLevelCoinGoal) * 100;
 
-    const bar = document.getElementById('levelProgressBar');
+    const bar = safeGetElement('levelProgressBar');
     if (bar) bar.style.width = Math.min(100, progressPercent) + '%';
-    const progressText = document.getElementById('levelProgressText');
+    const progressText = safeGetElement('levelProgressText');
     if (progressText) {
         progressText.innerText = `To Next Level: ${currentProgressCoins.toLocaleString()} / ${nextLevelCoinGoal.toLocaleString()}`;
     }
 
-    // [NEW] HUD 퀵 업그레이드 버튼 갱신
-    btnQuickFireRate.innerText = `🔫 SPD [LV.${fireRateLevel}] ${costFireRate.toLocaleString()}`;
-    btnQuickFireRate.disabled = totalCoins < costFireRate;
-    btnQuickMultiShot.innerText = `🌟 MLT [LV.${multiShotLevel}] ${costMultiShot.toLocaleString()}`;
-    btnQuickMultiShot.disabled = totalCoins < costMultiShot || multiShotLevel >= 3; // 멀티샷은 최대 3레벨(3발)
-    btnQuickEnemySlow.innerText = `🐢 SLW [LV.${enemySlowLevel}] ${costEnemySlow.toLocaleString()}`;
-    btnQuickEnemySlow.disabled = totalCoins < costEnemySlow || enemySlowLevel >= 8; // 최대 70% 감속
-
     // 다음 프레임 예약
     animationId = requestAnimationFrame(gameLoop);
+    } catch (e) {
+        console.error("GameLoop Error:", e);
+        // [FIX] 무한 에러 루프 방지를 위해 즉시 재호출하지 않고 게임 중지
+        isPlaying = false;
+        alert("게임 루프 중 치명적인 오류가 발생했습니다. 페이지를 새로고침 해주세요! (Error: " + e.message + ")");
+    }
 }
 
 // ==========================================
@@ -2113,8 +2141,8 @@ bindTouchAndClick(btnHardReset, () => {
 });
 
 // [NEW] 상점 내 데이터 완전 초기화 버튼 로직
-const btnHardResetShop = document.getElementById('btnHardResetShop');
-if (btnHardResetShop) {
+const btnHardResetShop = safeGetElement('btnHardResetShop');
+if (btnHardResetShop && btnHardResetShop.id !== 'dummy') { // safeGetElement가 dummy를 반환할 수 있으므로 체크
     bindTouchAndClick(btnHardResetShop, () => {
         if (confirm("⚠️ 경고: 모든 게임 데이터(코인, 업그레이드, 스테이지)가 영구적으로 삭제됩니다. 계속하시겠습니까?")) {
             localStorage.clear();
