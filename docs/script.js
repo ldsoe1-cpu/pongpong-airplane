@@ -1,9 +1,10 @@
+// Ver 3.0.5-FINAL-SYNC
 // [REPAIR] 전역 에러 핸들러 (사소한 에러가 게임 전체를 멈추는 것을 방지)
 window.onerror = function(message, source, lineno, colno, error) {
     console.warn("Global Error Captured (Defensive Mode):", message);
     return true; // 에러 전파 방지
 };
-console.log("🚀 뽕뽕비행기: 갤럭시 디펜더 [Ver 3.0.5-REPAIR] 가동 시작");
+console.log("🚀 뽕뽕비행기: 갤럭시 디펜더 [Ver 3.0.5-FINAL-SYNC] 가동 시작");
 
 // --- Capacitor & AdMob (출시용 광고) 설정 ---
 const { AdMob } = window.Capacitor ? window.Capacitor.Plugins : {};
@@ -660,6 +661,13 @@ const costMultiShotElement = safeGetElement('costMultiShot');
 const upgFireRateBtn = safeGetElement('upgFireRateBtn');
 const upgMultiShotBtn = safeGetElement('upgMultiShotBtn');
 
+// [NEW] 상점 추가 버튼들
+const costEnemySpeedElement = safeGetElement('costEnemySpeed');
+const upgEnemySpeedBtn = safeGetElement('upgEnemySpeedBtn');
+const costLaserElement = safeGetElement('costLaser');
+const upgLaserBtn = safeGetElement('upgLaserBtn');
+const adCoinShopBtn = safeGetElement('adCoinShopBtn');
+
 const adReviveBtn = safeGetElement('adReviveBtn');
 const adDoubleCoinBtn = safeGetElement('adDoubleCoinBtn');
 const clearScoreValue = safeGetElement('clearScoreValue');
@@ -669,6 +677,7 @@ const debugStageInfo = safeGetElement('debugStageInfo');
 const btnStageUp = safeGetElement('btnStageUp');
 const btnStageDown = safeGetElement('btnStageDown');
 const btnCoinCheat = safeGetElement('btnCoinCheat');
+const btnHardReset = safeGetElement('btnHardReset');
 
 // [NEW] HUD 퀵 업그레이드 버튼
 const btnQuickFireRate = safeGetElement('btnQuickFireRate');
@@ -895,26 +904,16 @@ class Player {
                 b.damage = 100;
                 b.isPiercing = true;
                 bullets.push(b);
-            } else if (this.powerup === 'red') {
-                // Quad-Shot
-                const spread = 20;
-                for (let i = 0; i < 4; i++) {
-                    const b = new Bullet(this.x - 30 + (i * spread), this.y - this.height / 2);
-                    b.color = bulletColor;
-                    bullets.push(b);
-                }
             } else {
-                // [MOD] 멀티샷 진화 시스템 (1발 -> 2발 V자 -> 3발 방사형)
+                // [MOD] 중첩 로직 적용: 업그레이드 발수 + 아이템 발수
+                
+                // 1. 업그레이드 기반 기본 발사 (1~3발)
                 if (multiShotLevel === 1) {
-                    const b = new Bullet(this.x, this.y - this.height / 2);
-                    b.color = bulletColor;
-                    bullets.push(b);
+                    bullets.push(new Bullet(this.x, this.y - this.height / 2, 0, -25, bulletColor));
                 } else if (multiShotLevel === 2) {
-                    // V자 2발
-                    bullets.push(new Bullet(this.x - 10, this.y - this.height / 2, -1, -25));
-                    bullets.push(new Bullet(this.x + 10, this.y - this.height / 2, 1, -25));
+                    bullets.push(new Bullet(this.x - 10, this.y - this.height / 2, -1, -25, bulletColor));
+                    bullets.push(new Bullet(this.x + 10, this.y - this.height / 2, 1, -25, bulletColor));
                 } else {
-                    // 3발 방사형
                     const angles = [-10, 0, 10];
                     angles.forEach(angle => {
                         const rad = angle * Math.PI / 180;
@@ -922,6 +921,18 @@ class Player {
                         b.color = bulletColor;
                         bullets.push(b);
                     });
+                }
+
+                // 2. 레드 아이템(Quad-Shot) 효과 중첩 (+4발)
+                if (this.powerup === 'red') {
+                    const spread = 20;
+                    for (let i = 0; i < 4; i++) {
+                        // 기존 위치와 겹치지 않게 약간 오프셋을 줌
+                        const b = new Bullet(this.x - 45 + (i * 30), this.y - this.height / 4, 0, -30);
+                        b.color = '#ff3333'; // 아이템 총알은 붉은색 강조
+                        b.damage = 1.5;      // 중첩 시 데미지 약간 강화
+                        bullets.push(b);
+                    }
                 }
             }
             playLaserSound(); // 레이저 사운드 재생 슉슉!
@@ -1608,7 +1619,7 @@ function gameLoop() {
     const finalDisplayScore = Math.max(0, Math.floor(score));
     const finalDisplayCoins = Math.max(0, Math.floor(totalCoins / 100) * 100);
     
-    if (scoreValue) scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.5-FINAL)`;
+    if (scoreValue) scoreValue.innerText = `[LV.${Math.trunc(currentStage)}] Score: ${finalDisplayScore} (Ver 3.0.5-FINAL-SYNC)`;
     if (coinValue) coinValue.innerText = finalDisplayCoins.toLocaleString();
 
     // [NEW] 2배 코인 타이머 자막 표시 및 자석 비용 갱신
