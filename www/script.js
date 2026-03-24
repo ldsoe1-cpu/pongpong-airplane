@@ -1386,7 +1386,7 @@ class Coin {
 
                 // [MOD] 모든 아이템(빨강, 파랑, 주황, 노랑) 획득 시 100코인(2배 모드 시 200) 보상으로 통일
                 // doubleCoinTimer가 작동 중이면 200원, 아니면 100원
-                const earned = doubleCoinTimer > 0 ? 200 : 100;
+                const earned = doubleCoinTimer > 0 ? 400 : 200;
                 
                 thisGameCoins = Math.floor(thisGameCoins / 100) * 100 + earned;
                 thisStageCoins = Math.floor(thisStageCoins / 100) * 100 + earned;
