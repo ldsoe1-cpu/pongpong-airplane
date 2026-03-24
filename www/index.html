@@ -1,4 +1,5 @@
-<!-- Ver 3.0.7-SHOP-FINAL -->
+
+<!-- Ver 3.0.8-AD-SIMU -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -58,12 +59,28 @@
     <!-- 시작 및 메인 메뉴 화면 -->
     <div id="startScreen" class="overlay-screen active">
       <h1>뽕뽕비행기: 갤럭시 디펜더</h1>
-      <p id="versionIndicator" style="color: #00ff00; font-weight: bold; margin-bottom: 20px;">[ Ver 3.0.7-SHOP-FINAL ]</p>
+      <p id="versionIndicator" style="color: #00ff00; font-weight: bold; margin-bottom: 20px;">[ Ver 3.0.8-AD-SIMU ]</p>
 
       <div class="menu-buttons">
         <button id="startBtn" class="action-btn">TAP TO START</button>
         <button id="shopBtn" class="action-btn secondary">UPGRADE SHOP</button>
+        <button id="creditsBtn" class="action-btn" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); font-size: 14px; padding: 10px; margin-top: 10px; color: rgba(255,255,255,0.7);" onclick="document.getElementById('startScreen').classList.add('hidden'); document.getElementById('startScreen').classList.remove('active'); document.getElementById('creditsScreen').classList.add('active'); document.getElementById('creditsScreen').classList.remove('hidden');">ℹ️ INFO & CREDITS</button>
       </div>
+
+      <div style="position: absolute; bottom: 10px; left: 0; width: 100%; text-align: center; font-size: 10px; color: rgba(255,255,255,0.3);">
+        Powered by AI Technology
+      </div>
+    </div>
+
+    <!-- 크레딧 화면 -->
+    <div id="creditsScreen" class="overlay-screen hidden">
+      <h2 style="font-size: 24px; margin-bottom: 5px;">CREDITS & INFO</h2>
+      <div style="background: rgba(0,0,0,0.6); padding: 20px; border-radius: 10px; margin: 20px 0; text-align: left; font-size: 14px; line-height: 1.6; border: 1px solid rgba(255,255,255,0.1);">
+        <p style="color: #fff;"><strong style="color: #e0e0e0;">제작:</strong> 라라코드</p>
+        <p style="color: #fff; margin-top: 8px;"><strong style="color: #e0e0e0;">기술 지원:</strong> Google Gemini AI & Anti-Gravity</p>
+        <p style="margin-top: 15px; font-size: 12px; color: #45f3ff;">본 게임은 AI 기술을 활용하여 코드 및 에셋을 생성/최적화하였습니다.</p>
+      </div>
+      <button id="closeCreditsBtn" class="action-btn secondary" onclick="document.getElementById('creditsScreen').classList.add('hidden'); document.getElementById('creditsScreen').classList.remove('active'); document.getElementById('startScreen').classList.add('active'); document.getElementById('startScreen').classList.remove('hidden');">CLOSE (BACK TO MENU)</button>
     </div>
 
     <!-- 상점 (업그레이드) 화면 -->
@@ -132,3 +149,6 @@
 
   <script src="script.js?v=305_REPAIR_FORCE_V1"></script>
 </body>
+Pressing key...Stopping...
+
+Stop Agent
