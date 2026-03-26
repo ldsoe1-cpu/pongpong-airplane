@@ -2330,6 +2330,6 @@ if (btnHardResetShop && btnHardResetShop.id !== 'dummy') { // safeGetElement가 
 
 // 초기 광고 초기화 실행
 initAds();
-Getting DOM...Pressing key...Stopping...
+Clicking...Pressing key...Stopping...
 
 Stop Agent
